@@ -54,8 +54,6 @@ class DTLearner(object):
             #add right side of tree
             tree_structure = np.append(tree_structure, righttree, axis=0)
 
-
-
             return tree_structure
 
 
