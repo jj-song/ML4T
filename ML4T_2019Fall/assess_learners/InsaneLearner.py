@@ -4,13 +4,13 @@ import RTLearner as rt
 import BagLearner as bl
 import LinRegLearner as lrl
 
-class BagLearner(object):
+class InsaneLearner(object):
 
-    def __init__(self, learner, bags=20, boost=False, verbose = False, **kwargs):
-        learners = []
-        for i in range(0, bags):
-            learners.append(learner(**kwargs))
-        self.learners = learners
+    def __init__(self, verbose = False):
+        self.verbose = verbose
+        self.learners = []
+        for i in range(0, 20):
+            self.learners.append(lrl.LinRegLearner(verbose = verbose))
 
     def author(self):
         return 'jsong350' # replace tb34 with your Georgia Tech username

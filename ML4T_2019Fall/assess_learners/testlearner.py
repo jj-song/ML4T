@@ -25,6 +25,7 @@ GT honor code violation.
 import numpy as np
 import math
 import LinRegLearner as lrl
+import InsaneLearner as it
 import sys
 import DTLearner as dt
 import RTLearner as rt
@@ -65,9 +66,14 @@ if __name__=="__main__":
     #print(learner.author())
 
     # create bag learner and train it
-    learner = bl.BagLearner(learner = dt.DTLearner, leaf_size= 1, bags = 20, boost = False, verbose = False) # create a LinRegLearner
+    learner = bl.BagLearner(learner = dt.DTLearner, bags = 20, boost = False, verbose = False) # create a LinRegLearner
     learner.addEvidence(trainX, trainY) # train it
     print(learner.author())
+
+    # create insane learner and train it
+    #learner = it.InsaneLearner(verbose = False) # constructor
+    #learner.addEvidence(trainX, trainY) # train it
+    #print(learner.author())
 
     # evaluate in sample
     predY = learner.query(trainX) # get the predictions
