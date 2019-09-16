@@ -27,6 +27,8 @@ import math
 import LinRegLearner as lrl
 import sys
 import DTLearner as dt
+import RTLearner as rt
+import BagLearner as bl
 
 if __name__=="__main__":
     if len(sys.argv) != 2:
@@ -52,8 +54,18 @@ if __name__=="__main__":
     print(f"{testX.shape}") #will show (number of rows, number of column) for test x
     print(f"{testY.shape}") #will show (number of rows, number of column) for test y
 
-    # create a learner and train it
-    learner = dt.DTLearner(leaf_size = 1, verbose = True) # create a LinRegLearner
+    # create decision tree learner and train it
+    #learner = dt.DTLearner(leaf_size = 1, verbose = True) # create a LinRegLearner
+    #learner.addEvidence(trainX, trainY) # train it
+    #print(learner.author())
+
+    # create random tree learner and train it
+    #learner = rt.RTLearner(leaf_size = 1, verbose = True) # create a LinRegLearner
+    #learner.addEvidence(trainX, trainY) # train it
+    #print(learner.author())
+
+    # create bag learner and train it
+    learner = bl.BagLearner(learner = dt.DTLearner, leaf_size= 1, bags = 20, boost = False, verbose = False) # create a LinRegLearner
     learner.addEvidence(trainX, trainY) # train it
     print(learner.author())
 

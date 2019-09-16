@@ -16,7 +16,7 @@ class RTLearner(object):
             return np.array([[-1, dataY.mean(), -1, -1]])
         #check if all of the dataY is the same. If so, create leaf and take the first Y value.
         elif np.all(dataY[:] == dataY[0]):
-            return np.array([[-1, dataY[0], -1, -1]])
+            return np.array([[-1, dataY.mean(), -1, -1]])
         #determine best feature i to split on
         else:
             i = np.random.randint(0, dataX.shape[1], 1)[0]

@@ -28,15 +28,28 @@ import LinRegLearner as lrl
 import sys
 
 #x = np.zeros((3, 6))
-#y = np.random.rand(3,1)
+y = np.random.rand(10,4)
 
 #if np.all(y[:]==y[0]):
 #    print("yup")
 #else:
 #    print("nope")
-Ytest = {0: 0.18102203016735763, 1: -0.3539820462795248, 2: 0.22477544078659326, 3: 0.06647875289486703, 4: -0.10168529311092087, 5: -0.08091996239450215, 6: -0.23773595010009663, 7: -0.09693685304180215, 8: -0.06361129333593983, 9: 0.218397604680865, 10: 0.07141368941247075}
+#Ytest = {0: 0.18102203016735763, 1: -0.3539820462795248, 2: 0.22477544078659326, 3: #0.06647875289486703, 4: -0.10168529311092087, 5: -0.08091996239450215, 6: -#0.23773595010009663, 7: -0.09693685304180215, 8: -0.06361129333593983, 9: 0.218397604680865, #10: 0.07141368941247075}
 
 #for x in range(0, 20):
 #    Ytest = np.append(Ytest,6)
-the_max = max(Ytest, key=Ytest.get)
-print(the_max)
+#the_max =  np.random.random()
+
+#print(y)
+#print(y.shape[0])
+#print(np.random.randint(0, y.shape[0], 1)[0])
+
+print(y)
+#print(y.shape[0])
+
+#a = np.random.randint(0, 10, ((10)))
+#print(a)
+#print(y[a])
+
+print(z)
+print(type(z))
