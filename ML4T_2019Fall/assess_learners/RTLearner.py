@@ -20,7 +20,7 @@ class RTLearner(object):
         #determine best feature i to split on
         else:
             i = np.random.randint(0, dataX.shape[1], 1)[0]
-            print("the feature used is " + str(i))
+            #print("the feature used is " + str(i))
             #get the median value from the split column
             SplitVal = np.median(dataX[:,i])
             split_index_left = dataX[:,i] <= SplitVal

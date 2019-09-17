@@ -37,24 +37,23 @@ from util import get_data, plot_data
 def optimize_portfolio(sd=dt.datetime(2008,1,1), ed=dt.datetime(2009,1,1), \
     syms=['GOOG','AAPL','GLD','XOM'], gen_plot=False):
   		   	  			  	 		  		  		    	 		 		   		 		  
-    def assess(allocs, prices):
-        sv=1000000
-        rfr=0
-        sf=252
-        normalized_p = prices*allocs*sv
-        port_val = normalized_p.sum(axis=1)
-
-        final_val = port_val.iloc[-1] #end value
-        change = port_val.pct_change() #percentage change start to end
-        cr = (final_val-sv)/sv #cumulative return
+    def assess_portfolio(allocs, prices):
+        sv=1000000 #starting value according to assess_portfolio
+        rfr=0 #risk free rate according to assess_portfolio
+        sf=252 #sample frequency of all trading days in a year
+        normalized_p = prices*allocs*sv #normalize it first
+        ev = normalized_p.sum(axis=1) #end value of portfolio
+        final_snapshot = ev.iloc[-1] 
+        change = ev.pct_change() #percentage change 
+        cr = (final_snapshot-sv)/sv #cumulative return
         adr = change[1:].mean() #average daily return
         sddr = change[1:].std() #standard deviation of daily returns
-        sr = (np.sqrt(sf)*(change[1:]).mean()) / ((change[1:]).std())  #sharp ratio
+        sr = (np.sqrt(sf)*(change[1:]).mean()) / ((change[1:]).std()) #sharp ratio
 		
-        return cr, adr, sddr, sr, port_val
+        return cr, adr, sddr, sr, ev
 
-    def execute(allocs, prices):
-	    return -1.0*assess(allocs, prices)[3]
+    def execute_ap(allocs, prices):
+	    return (-1.0)*assess_portfolio(allocs, prices)[3]
   		   	  			  	 		  		  		    	 		 		   		 		  
     # Read in adjusted closing prices for given symbols, date range  		   	  			  	 		  		  		    	 		 		   		 		  
     dates = pd.date_range(sd, ed)  		   	  			  	 		  		  		    	 		 		   		 		  
@@ -70,18 +69,15 @@ def optimize_portfolio(sd=dt.datetime(2008,1,1), ed=dt.datetime(2009,1,1), \
     allocs = [1.0/len(syms)]*len(syms)
     bnds = ((0., 1.),) * len(syms)
     cons = ({'type':'eq', 'fun': lambda x: 1.0 - np.sum(x)})
-    results = spo.minimize(execute, allocs, args=prices, method='SLSQP', bounds=bnds, constraints=cons)
-    cr, adr, sddr, sr, port_val = assess(prices, results.x)
+    results = spo.minimize(execute_ap, allocs, args=prices, method='SLSQP', bounds=bnds, constraints=cons)
+    cr, adr, sddr, sr, ev = assess_portfolio(prices, results.x)
     allocs = results.x
 			   	  			  	 		  		  		    	 		 		   		 		  
-  		   	  			  	 		  		  		    	 		 		   		 		  
-    # Get daily portfolio value  		   	  			  	 		  		  		    	 		 		   		 		  
-    port_val = prices_SPY # add code here to compute daily portfolio values  		   	  			  	 		  		  		    	 		 		   		 		  
   		   	  			  	 		  		  		    	 		 		   		 		  
     # Compare daily portfolio value with SPY using a normalized plot  		   	  			  	 		  		  		    	 		 		   		 		  
     if gen_plot:  		   	  			  	 		  		  		    	 		 		   		 		  
         # add code to plot here  		   	  			  	 		  		  		    	 		 		   		 		  
-        df_temp = pd.concat([port_val, prices_SPY], keys=['Portfolio', 'SPY'], axis=1)
+        df_temp = pd.concat([ev, prices_SPY], keys=['Portfolio', 'SPY'], axis=1)
         df_temp = df_temp/df_temp.iloc[0,:]
         graph=df_temp.plot(title="Optimal Portfolio vs SPY")
         graph.set_xlabel("Dates")

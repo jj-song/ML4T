@@ -66,7 +66,7 @@ if __name__=="__main__":
     #print(learner.author())
 
     # create bag learner and train it
-    learner = bl.BagLearner(learner = dt.DTLearner, bags = 20, boost = False, verbose = False) # create a LinRegLearner
+    learner = bl.BagLearner(learner = rt.RTLearner, bags = 20, boost = False, verbose = False) # create a LinRegLearner
     learner.addEvidence(trainX, trainY) # train it
     print(learner.author())
 

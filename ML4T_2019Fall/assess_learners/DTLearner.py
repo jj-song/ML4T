@@ -27,9 +27,9 @@ class DTLearner(object):
                 abs_corr = abs(corr)
                 features[i] = abs_corr
 
-            print("these are the features with their correlation " + str(features))
+            #print("these are the features with their correlation " + str(features))
             i = int(max(features, key=features.get)) #index of best feature to do initial split
-            print("the feature used is " + str(i))
+            #print("the feature used is " + str(i))
             #get the median value from the split column
             SplitVal = np.median(dataX[:,i])
             split_index_left = dataX[:,i] <= SplitVal

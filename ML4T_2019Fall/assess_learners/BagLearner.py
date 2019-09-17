@@ -6,11 +6,12 @@ import LinRegLearner as lrl
 
 class BagLearner(object):
 
-    def __init__(self, learner, bags=20, boost=False, verbose = False, **kwargs):
-        learners = []
+    def __init__(self, learner, kwargs = {}, bags=20, boost=False, verbose = False):
+        #Check for DTLearner and RTLearner. If either, designate leaf_size.
+        #if learner in [dt.DTLearner, rt.RTLearner]:
+        self.learners = []
         for i in range(0, bags):
-            learners.append(learner(**kwargs))
-        self.learners = learners
+            self.learners.append(learner(**kwargs))
 
     def author(self):
         return 'jsong350' # replace tb34 with your Georgia Tech username
