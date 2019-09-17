@@ -6,7 +6,7 @@ import LinRegLearner as lrl
 
 class BagLearner(object):
 
-    def __init__(self, learner, kwargs = {}, bags=20, boost=False, verbose = False):
+    def __init__(self, learner=None, kwargs={}, bags=20, boost=False, verbose = False, leaf_size=1):
         #Check for DTLearner and RTLearner. If either, designate leaf_size.
         #if learner in [dt.DTLearner, rt.RTLearner]:
         self.learners = []
