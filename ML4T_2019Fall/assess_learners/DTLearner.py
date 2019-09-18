@@ -77,7 +77,6 @@ class DTLearner(object):
         testY = []
         for element in testX:
             count = 0
-
             while count != -1:
                 factor = int(self.tree[count][0])
                 SplitVal_or_Y = self.tree[count][1]

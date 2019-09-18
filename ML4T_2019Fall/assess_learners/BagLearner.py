@@ -6,9 +6,10 @@ import LinRegLearner as lrl
 
 class BagLearner(object):
 
-    def __init__(self, learner=None, kwargs={}, bags=20, boost=False, verbose = False, leaf_size=1):
+    def __init__(self, learner=None, kwargs={}, bags=25, boost=False, verbose = False):
         #Check for DTLearner and RTLearner. If either, designate leaf_size.
         #if learner in [dt.DTLearner, rt.RTLearner]:
+
         self.learners = []
         for i in range(0, bags):
             self.learners.append(learner(**kwargs))
