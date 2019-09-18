@@ -169,6 +169,8 @@ if __name__=="__main__":
     for exp in range(0, 4):
         dt_train_t = np.zeros((4,50))
         dt_query_t = np.zeros((4,50))
+        dt_size = np.zeros(50,)
+        rt_size = np.zeros(50,)
         for leaf in range(1, 51):
             startTime = time.time()
             learner = dt.DTLearner(leaf_size = leaf, verbose = True)
@@ -182,7 +184,9 @@ if __name__=="__main__":
             dt_query_t[exp][leaf-1] = time.time()-startTime
             dt_query_avg = np.mean(dt_query_t, axis=0)
 
-    for exp in range(0, 4):
+            dt_size[leaf-1] = learner.tree.shape[0]
+
+
         rt_train_t = np.zeros((4, 50))
         rt_query_t = np.zeros((4, 50))
         for leaf in range(1, 51):
@@ -197,23 +201,28 @@ if __name__=="__main__":
             rt_query_t[exp][leaf-1] = time.time()-startTime
             rt_query_avg = np.mean(rt_query_t, axis=0)
 
+            rt_size[leaf-1] = learner.tree.shape[0]
+
+
     plt.plot(dt_train_avg, lw=1, label="DTLearner Train Time")
     plt.plot(rt_train_avg, lw=1, label="RTLearner Train Time")
-    plt.legend()
-    plt.title("Time vs Leaf - Compare DT and RT Learners' Train Times")
-    ##plt.xlim([-10, 550])
-    plt.xlabel("Leaf")
-    plt.ylabel("Seconds")
-    plt.savefig('leaf_vs_train_time_dt_vs_rt.png')
-    plt.clf()
-
-
     plt.plot(dt_query_avg, lw=1, label="DTLearner Query Time")
     plt.plot(rt_query_avg, lw=1, label="RTLearner Query Time")
     plt.legend()
-    plt.title("Time vs Leaf - Compare DT and RT Learners' Query Times")
+    plt.title("Time vs Leaf - Compare DT and RT Learners' Train and Query Times")
     ##plt.xlim([-10, 550])
     plt.xlabel("Leaf")
     plt.ylabel("Seconds")
-    plt.savefig('leaf_vs_query_time_dt_vs_rt.png')
+    plt.savefig('leaf_vs_query_train_time_dt_vs_rt.png')
+    plt.clf()
+
+
+    plt.plot(dt_size, lw=1, label="DTLearner Size")
+    plt.plot(rt_size, lw=1, label="RTLearnerSize")
+    plt.legend()
+    plt.title("Nodes vs Leaf - Compare DT and RT Learners' Tree Sizes")
+    ##plt.xlim([-10, 550])
+    plt.xlabel("Leaf")
+    plt.ylabel("Nodes")
+    plt.savefig('leaf_vs_nodes_dt_vs_rt.png')
     plt.clf()
