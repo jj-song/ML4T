@@ -33,14 +33,14 @@ class InsaneLearner(object):
             learner.addEvidence(train_data, test_data)
 
 
-    def query(self,testX):
+    def query(self,test):
         """
         @summary: Estimate a set of test points given the model we built.
         @param points: should be a numpy array with each row corresponding to a specific query.
         @returns the estimated values according to the saved model.
         """
         # loop through each of the test rows by each factor.
-        aggregate = np.array([learner.query(testX) for learner in self.learners])
+        aggregate = np.array([learner.query(test) for learner in self.learners])
         return np.mean(aggregate, axis=0)
 
 

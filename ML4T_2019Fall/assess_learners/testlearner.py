@@ -58,6 +58,7 @@ if __name__=="__main__":
     print(f"{testX.shape}") #will show (number of rows, number of column) for test x
     print(f"{testY.shape}") #will show (number of rows, number of column) for test y
 
+    #BE SURE TO COMMENT OUT LEARNERS PREVIOUS LEARNER OTHERWISE WILL OVERWRITE#
     ############### DTLearner ###############
     # create decision tree learner and train it
     #learner = dt.DTLearner(leaf_size = 50, verbose = True) # create a LinRegLearner
@@ -81,14 +82,31 @@ if __name__=="__main__":
 
     ############### InsaneLearner ###########
     # create insane learner and train it
-    #learner = it.InsaneLearner(verbose = False) # constructor
-    #learner.addEvidence(trainX, trainY) # train it
-    #print(learner.author())
+    learner = it.InsaneLearner(verbose = False) # constructor
+    learner.addEvidence(trainX, trainY) # train it
+    print(learner.author())
     #########################################
 
+    # evaluate in sample
+    predY = learner.query(trainX) # get the predictions
+    rmse = math.sqrt(((trainY - predY) ** 2).sum()/trainY.shape[0])
+    print()
+    print("In sample results")
+    print(f"RMSE: {rmse}")
+    c = np.corrcoef(predY, y=trainY)
+    print(f"corr: {c[0,1]}")
+
+    # evaluate out of sample
+    predY = learner.query(testX) # get the predictions
+    rmse = math.sqrt(((testY - predY) ** 2).sum()/testY.shape[0])
+    print()
+    print("Out of sample results")
+    print(f"RMSE: {rmse}")
+    c = np.corrcoef(predY, y=testY)
+    print(f"corr: {c[0,1]}")
 
     # Question 1: Does overfitting occur with respect to leaf_size? Use the dataset istanbul.csv with DTLearner. For which values of leaf_size does overfitting occur? Use RMSE as your metric for assessing overfitting. Support your assertion with graphs/charts. (Don't use bagging).
-    '''
+
     in_sample = np.zeros((100, 1))
     for leaf in range(1, 101):
         learner = dt.DTLearner(leaf_size = leaf, verbose = True)
@@ -122,11 +140,11 @@ if __name__=="__main__":
     plt.ylabel("RMSE")
     plt.savefig('leaf_vs_rmse_dtlearn_no_bag.png')
     plt.clf()
-    '''
+
 
 
     # Question 2: Can bagging reduce or eliminate overfitting with respect to leaf_size? Again use the dataset istanbul.csv with DTLearner. To investigate this choose a fixed number of bags to use and vary leaf_size to evaluate. Provide charts to validate your conclusions. Use RMSE as your metric.
-    '''
+
     in_sample = np.zeros((50, 1))
     for leaf in range(1, 51):
         learner = bl.BagLearner(learner = dt.DTLearner, kwargs ={"leaf_size":leaf}, bags = 25, boost = False, verbose = False)
@@ -161,7 +179,7 @@ if __name__=="__main__":
     plt.ylabel("RMSE")
     plt.savefig('leaf_vs_rmse_dtlearn_yes_bag.png')
     plt.clf()
-    '''
+
 
 
     # Question 3: Quantitatively compare "classic" decision trees (DTLearner) versus random trees (RTLearner). In which ways is one method better than the other? Provide at least two quantitative measures. Important, using two similar measures that illustrate the same broader metric does not count as two. (For example, do not use two measures for accuracy.) Note for this part of the report you must conduct new experiments, don't use the results of the experiments above for this(RMSE is not allowed as a new experiment).
@@ -172,56 +190,59 @@ if __name__=="__main__":
         dt_size = np.zeros(50,)
         rt_size = np.zeros(50,)
         for leaf in range(1, 51):
+            #get DT training time
             startTime = time.time()
             learner = dt.DTLearner(leaf_size = leaf, verbose = True)
             learner.addEvidence(trainX, trainY)
             dt_train_t[exp][leaf-1] = time.time()-startTime
             dt_train_avg = np.mean(dt_train_t, axis=0)
-            print(dt_train_avg)
 
+            #get DT query time
             startTime = time.time()
             predY = learner.query(testX) # get the predictions
             dt_query_t[exp][leaf-1] = time.time()-startTime
             dt_query_avg = np.mean(dt_query_t, axis=0)
 
+            #get DT node size
             dt_size[leaf-1] = learner.tree.shape[0]
 
 
         rt_train_t = np.zeros((4, 50))
         rt_query_t = np.zeros((4, 50))
         for leaf in range(1, 51):
+            #get RT training time
             startTime = time.time()
             learner = rt.RTLearner(leaf_size = leaf, verbose = True)
             learner.addEvidence(trainX, trainY)
             rt_train_t[exp][leaf-1] = time.time()-startTime
             rt_train_avg = np.mean(rt_train_t, axis=0)
 
+            #get RT query time
             startTime = time.time()
             predY = learner.query(testX) # get the predictions
             rt_query_t[exp][leaf-1] = time.time()-startTime
             rt_query_avg = np.mean(rt_query_t, axis=0)
 
+            #get RT node size
             rt_size[leaf-1] = learner.tree.shape[0]
 
-
+    #generate the train and query graph together to save space
     plt.plot(dt_train_avg, lw=1, label="DTLearner Train Time")
     plt.plot(rt_train_avg, lw=1, label="RTLearner Train Time")
     plt.plot(dt_query_avg, lw=1, label="DTLearner Query Time")
     plt.plot(rt_query_avg, lw=1, label="RTLearner Query Time")
     plt.legend()
     plt.title("Time vs Leaf - Compare DT and RT Learners' Train and Query Times")
-    ##plt.xlim([-10, 550])
     plt.xlabel("Leaf")
     plt.ylabel("Seconds")
     plt.savefig('leaf_vs_query_train_time_dt_vs_rt.png')
     plt.clf()
 
-
+    #generate the node size graph below
     plt.plot(dt_size, lw=1, label="DTLearner Size")
     plt.plot(rt_size, lw=1, label="RTLearnerSize")
     plt.legend()
     plt.title("Nodes vs Leaf - Compare DT and RT Learners' Tree Sizes")
-    ##plt.xlim([-10, 550])
     plt.xlabel("Leaf")
     plt.ylabel("Nodes")
     plt.savefig('leaf_vs_nodes_dt_vs_rt.png')

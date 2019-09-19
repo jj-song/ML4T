@@ -18,7 +18,7 @@ class DTLearner(object):
         #check if all of the dataY is the same. If so, create leaf and take the first Y value.
         elif np.all(dataY[:] == dataY[0]):
             return np.array([[-1, dataY[0], -1, -1]])
-        #determine best feature i to split on
+        #determine best feature i to split on. Highest correlation in this case
         else:
             features = {}
             for i in range(0, dataX.shape[1]):
@@ -39,17 +39,16 @@ class DTLearner(object):
             if not np.any(split_index_left) or not np.any(split_index_right):
                 return  np.array([[-1,dataY.mean(),-1,-1]])
 
-            #create recursive left tree using data which had X values less than SplitVal
+            #create recursive left tree using data which had X values less than or equal to SplitVal
             lefttree = self.build_tree(dataX[dataX[:,i] <= SplitVal], dataY[dataX[:,i] <= SplitVal])
             #create recursive right tree using data which had X values greater than SplitVal
             righttree = self.build_tree(dataX[dataX[:,i] > SplitVal], dataY[dataX[:,i] > SplitVal])
 
-            #recursively add new root after forming trees
-            #factor, SplitVal, Left, Right
-            root = np.array( [[i, SplitVal, 1, lefttree.shape[0] + 1]] ) #find new root
+            #recursively add new node after forming trees
+            node = np.array( [[i, SplitVal, 1, lefttree.shape[0] + 1]] ) #find new node
 
             #add left side of tree
-            tree_structure = np.append(root, lefttree, axis=0)
+            tree_structure = np.append(node, lefttree, axis=0)
 
             #add right side of tree
             tree_structure = np.append(tree_structure, righttree, axis=0)
@@ -67,27 +66,27 @@ class DTLearner(object):
 
 
 
-    def query(self,testX):
+    def query(self,test):
         """
         @summary: Estimate a set of test points given the model we built.
         @param points: should be a numpy array with each row corresponding to a specific query.
         @returns the estimated values according to the saved model.
         """
-        # loop through each of the test rows by each factor.
+        # loop through each of the test rows by each attribute.
         testY = []
-        for element in testX:
+        for element in test:
             count = 0
             while count != -1:
-                factor = int(self.tree[count][0])
+                attr = int(self.tree[count][0])
                 SplitVal_or_Y = self.tree[count][1]
-            # if the factor is -1, then stop.
-                if factor == -1:
+                # if the attr is -1, then stop.
+                if attr == -1:
                     testY = np.append(testY, SplitVal_or_Y)
                     count = -1
                 else:
-                    if element[factor] <= SplitVal_or_Y:
+                    if element[attr] <= SplitVal_or_Y:
                         count = count + int(self.tree[count][2])
-                    elif element [factor] > SplitVal_or_Y:
+                    elif element [attr] > SplitVal_or_Y:
                         count = count + int(self.tree[count][3])
 
         return testY
