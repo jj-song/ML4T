@@ -46,9 +46,9 @@ def get_symbols_prices(symbols, start_date, end_date):
 
 def initialize_symbols_to_prices_df(df, symbols, start_val):
     for symbol in symbols:
+        df[symbol + ' Shares'] = pd.Series(0, index=df.index)
         df['Portfolio Value'] = pd.Series(start_val, index=df.index)
         df['Cash'] = pd.Series(start_val, index=df.index)
-        df[symbol + ' Shares'] = pd.Series(0, index=df.index)
     return df
 
 def initalize_data(orders_file, start_val):
@@ -65,16 +65,16 @@ def initalize_data(orders_file, start_val):
     return orders_df, symbols_prices_df, symbols, start_date, end_date
 
 def compute_buy_on_share(symbols_prices_df, index, row, symbol):
-    symbols_prices_df.loc[index:, symbol + ' Shares'] = symbols_prices_df.loc[index:, symbol + ' Shares'] + row['Shares']
+    symbols_prices_df.loc[index:,symbol + ' Shares'] = symbols_prices_df.loc[index:,symbol + ' Shares'] + row['Shares']
 
 def compute_buy_on_cash(symbols_prices_df, index, row, symbol, impact, commission):
-    symbols_prices_df.loc[index:, 'Cash'] -= symbols_prices_df.loc[index, symbol] * row['Shares'] * (1 + impact) + commission
+    symbols_prices_df.loc[index:,'Cash'] -= symbols_prices_df.loc[index,symbol] * row['Shares'] * (1 + impact) + commission
 
 def compute_sell_on_share(symbols_prices_df, index, row, symbol):
-    symbols_prices_df.loc[index:, symbol + ' Shares'] = symbols_prices_df.loc[index:, symbol + ' Shares'] - row['Shares']
+    symbols_prices_df.loc[index:,symbol + ' Shares'] = symbols_prices_df.loc[index:,symbol + ' Shares'] - row['Shares']
 
 def compute_sell_on_cash(symbols_prices_df, index, row, symbol, impact, commission):
-    symbols_prices_df.loc[index:, 'Cash'] += symbols_prices_df.loc[index, symbol] * row['Shares'] * (1 - impact) - commission
+    symbols_prices_df.loc[index:,'Cash'] += symbols_prices_df.loc[index,symbol] * row['Shares'] * (1 - impact) - commission
 
 def compute_portvals(orders_file = "./orders/orders.csv", start_val = 1000000, commission=9.95, impact=0.005):
     # this is the function the autograder will call to test your code
@@ -87,10 +87,11 @@ def compute_portvals(orders_file = "./orders/orders.csv", start_val = 1000000, c
 
     for index, row in orders_df.iterrows():
         symbol = row['Symbol'] #e.g. GOOG
-        if row['Order'] == 'BUY':
+        order = row ['Order']
+        if order == 'BUY':
             compute_buy_on_share(symbols_prices_df, index, row, symbol)
             compute_buy_on_cash(symbols_prices_df, index, row, symbol, impact, commission)
-        if row['Order'] == 'SELL':
+        if order == 'SELL':
             compute_sell_on_share(symbols_prices_df, index, row, symbol)
             compute_sell_on_cash(symbols_prices_df, index, row, symbol, impact, commission)
 
@@ -109,7 +110,7 @@ def test_code():
 
     def get_portfolio_stats(pv):
         sf = 252
-        daily_change = (pv/pv.shift(1) - 1)
+        daily_change = pv/pv.shift(1) - 1
         cum_ret = pv[-1]/pv[0] - 1
         avg_daily_ret = daily_change.mean()
         std_daily_ret = daily_change.std()
