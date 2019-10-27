@@ -51,14 +51,9 @@ def initialize_symbols_to_prices_df(df, symbols, start_val):
         df['Cash'] = pd.Series(start_val, index=df.index)
     return df
 
-def autofill_na(df):
-    df = df.fillna(method="ffill")
-    df = df.fillna(method="bfill")
-    return df
-
-def initalize_data(orders_file, start_val):
+def initalize_data(orders, start_val):
     #begin
-    orders_df = pd.read_csv(orders_file, index_col='Date', parse_dates=True, na_values = ['nan'])
+    orders_df = orders
     start_date = min(orders_df.index)
     end_date = max(orders_df.index)
     symbols = get_symbols(orders_df)
@@ -81,14 +76,45 @@ def compute_sell_on_share(symbols_prices_df, index, row, symbol):
 def compute_sell_on_cash(symbols_prices_df, index, row, symbol, impact, commission):
     symbols_prices_df.loc[index:,'Cash'] += symbols_prices_df.loc[index,symbol] * row['Shares'] * (1 - impact) - commission
 
-def compute_portvals(orders_file = "./orders/orders.csv", start_val = 1000000, commission=9.95, impact=0.005):
+def get_portfolio_stats(pv):
+    sf = 252
+    daily_change = pv/pv.shift(1) - 1
+    cum_ret = pv[-1]/pv[0] - 1
+    avg_daily_ret = daily_change.mean()
+    std_daily_ret = daily_change.std()
+    sharpe_ratio = (np.sqrt(sf)*(avg_daily_ret))/std_daily_ret
+
+    return cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio
+
+def df_trades_transform(df_trades):
+    symbols = []
+    orders = []
+    shares = []
+
+    for index in range(len(df_trades.index)):
+        symbols.append('JPM')
+        if df_trades['orders'][index] > 0:
+            orders.append('BUY')
+            shares.append(df_trades['orders'][index])
+        elif df_trades['orders'][index] < 0:
+            orders.append('SELL')
+            shares.append(-df_trades['orders'][index])
+
+    df_symbol = pd.DataFrame(data = symbols, index=df_trades.index, columns = ['Symbol'])
+    df_order = pd.DataFrame(data=orders, index=df_trades.index, columns=['Order'])
+    df_share = pd.DataFrame(data=shares, index=df_trades.index, columns=['Shares'])
+
+    df_result = df_symbol.join(df_order).join(df_share)
+    return df_result
+
+def compute_portvals(orders, start_val = 1000000, commission=9.95, impact=0.005):
     # this is the function the autograder will call to test your code
     # NOTE: orders_file may be a string, or it may be a file object. Your
     # code should work correctly with either input
     # TODO: Your code here
 
     #get df of orders (prices not included)
-    orders_df, symbols_prices_df, symbols, start_date, end_date = initalize_data(orders_file, start_val)
+    orders_df, symbols_prices_df, symbols, start_date, end_date = initalize_data(orders, start_val)
 
     for index, row in orders_df.iterrows():
         symbol = row['Symbol'] #e.g. GOOG
@@ -113,21 +139,11 @@ def test_code():
     # note that during autograding his function will not be called.
     # Define input parameters
 
-    def get_portfolio_stats(pv):
-        sf = 252
-        daily_change = pv/pv.shift(1) - 1
-        cum_ret = pv[-1]/pv[0] - 1
-        avg_daily_ret = daily_change.mean()
-        std_daily_ret = daily_change.std()
-        sharpe_ratio = (np.sqrt(sf)*(avg_daily_ret))/std_daily_ret
-
-        return cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio
-
     of = "./orders/orders-short.csv"
     sv = 1000000
 
     # Process orders
-    portvals = compute_portvals(orders_file = of, start_val = sv)
+    portvals = compute_portvals(orders = of, start_val = sv)
     if isinstance(portvals, pd.DataFrame):
         portvals = portvals[portvals.columns[0]] # just get the first column
     else:
@@ -135,7 +151,7 @@ def test_code():
 
     # Get portfolio stats
     # Here we just fake the data. you should use your code from previous assignments.
-    orders_df, symbols_prices_df, symbols, start_date, end_date = initalize_data(orders_file = of, start_val = sv)
+    orders_df, symbols_prices_df, symbols, start_date, end_date = initalize_data(orders = of, start_val = sv)
 
     #get stats for fund
     cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio = get_portfolio_stats(portvals)
