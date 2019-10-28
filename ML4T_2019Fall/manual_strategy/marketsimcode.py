@@ -44,6 +44,8 @@ def get_symbols_prices(symbols, start_date, end_date):
     symbols_prices_df = get_data(symbols, pd.date_range(start_date, end_date))
     return symbols_prices_df
 
+
+
 def initialize_symbols_to_prices_df(df, symbols, start_val):
     for symbol in symbols:
         df[symbol + ' Shares'] = pd.Series(0, index=df.index)
