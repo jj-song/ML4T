@@ -102,8 +102,8 @@ def main():
     cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio = get_portfolio_stats(portvals)
 
     #df_trades with benchmark (buy once, hold, sell at end)
-    df_trades_benchmark = ms.test_bench_mark('JPM', sd, ed, 100000)
-    df_trades_benchmark_transformed = df_trades_transform(df_trades_benchmark)
+    df_trades_benchmark = ms.test_bench_mark(symbol, sd, ed, 100000)
+    df_trades_benchmark_transformed = df_trades_transform(df_trades_benchmark, symbol)
     portvals_bench = compute_portvals(df_trades_benchmark_transformed, start_val=100000, commission=0, impact=0)
     cum_ret_bench, avg_daily_ret_bench, std_daily_ret_bench, sharpe_ratio_bench = get_portfolio_stats(portvals_bench)
 
