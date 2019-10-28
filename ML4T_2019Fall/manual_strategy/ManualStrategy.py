@@ -93,10 +93,11 @@ def main():
     sd = dt.datetime(2010,1,1)
     ed = dt.datetime(2011,12,31)
     ms = ManualStrategy()
+    symbol = 'JPM'
 
     #df_trades with optimal strategy
-    df_trades = ms.testPolicy('JPM', sd, ed, 100000)
-    df_trades_transformed = df_trades_transform(df_trades)
+    df_trades = ms.testPolicy(symbol, sd, ed, 100000)
+    df_trades_transformed = df_trades_transform(df_trades, symbol)
     portvals = compute_portvals(df_trades_transformed, start_val=100000, commission=0, impact=0)
     cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio = get_portfolio_stats(portvals)
 
