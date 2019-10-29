@@ -88,13 +88,13 @@ def get_portfolio_stats(pv):
 
     return cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio
 
-def df_trades_transform(df_trades):
+def df_trades_transform(df_trades, symbol):
     symbols = []
     orders = []
     shares = []
 
     for index in range(len(df_trades.index)):
-        symbols.append('JPM')
+        symbols.append(symbol)
         if df_trades['orders'][index] > 0:
             orders.append('BUY')
             shares.append(df_trades['orders'][index])
