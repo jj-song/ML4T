@@ -19,6 +19,19 @@ def get_bollinger_bands(rolling_mean, rolling_std):
     lower_band = rolling_mean - rolling_std * 2
     return upper_band, lower_band
 
+def get_momentum(values, window):
+    test = values.shift(window)
+    momentum = values/values.shift(window-1) - 1
+    return momentum
+
+def get_stochastic(values, window):
+    rolling_min = values.rolling(window).min()
+    rolling_max = values.rolling(window).max()
+    k = ((values-rolling_min) / (rolling_max-rolling_min)) * 100
+
+    return k
+
+
 def main():
     sd = dt.datetime(2010,1,1)
     ed = dt.datetime(2011,12,31)
