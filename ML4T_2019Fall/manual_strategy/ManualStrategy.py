@@ -134,7 +134,7 @@ def main():
     plt.plot(portvals_normalized, 'r', label="Theoretically Optimal Portfolio")
     plt.plot(portvals_bench_normalized, 'g', label="Benchmark")
     plt.legend()
-    plt.title("Theoretically Optimal Portfolio vs Benchmark (Normalized)")
+    plt.title("Manual Strategy vs Benchmark (Normalized)")
     plt.xlabel("Date")
     plt.ylabel("Portfolio Value ($)")
     plt.savefig('Manual Strategy vs Benchmark (Normalized).png')
