@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import datetime as dt
 from manual_strategy.marketsimcode import get_symbols_prices, df_trades_transform, \
     compute_portvals, get_portfolio_stats
-from manual_strategy.indicators import get_rolling_mean, get_rolling_std, get_bollinger_bands, get_momentum, get_stochastic
+from manual_strategy.indicators import get_rolling_mean, get_rolling_std, get_bollinger_bands, get_stochastic
 
 class ManualStrategy (object):
 
@@ -33,17 +33,12 @@ class ManualStrategy (object):
         rolling_mean = get_rolling_mean(prices, window)
         rolling_std = get_rolling_std(prices, window)
         upper_band, lower_band = get_bollinger_bands(rolling_mean, rolling_std)
-        momentum = get_momentum(prices, window)
         stochastic = get_stochastic(prices, window)
 
-
-
-        #get new dataframe using bollinger band and adjust for nan days
         upper_band_without_nan = upper_band[upper_band.notnull()].to_frame()
         upper_band_without_nan_series = upper_band[upper_band.notnull()]
         lower_band_without_nan_series = lower_band[lower_band.notnull()]
         smd_without_nan_series = rolling_mean[rolling_mean.notnull()]
-        momentum_without_nan_series = momentum[momentum.notnull()]
         stochastic_without_nan_series = stochastic[stochastic.notnull()]
 
         sd_adj_for_nan = upper_band_without_nan.index[0]
@@ -65,7 +60,6 @@ class ManualStrategy (object):
             day_before = day-1
             date_of_order = symbols_prices_df_adj_for_nan.index[day]
 
-
             price_day_before_adj_for_nan = prices_adj_for_nan[day_before]
             price_adj_for_nan = prices_adj_for_nan[day]
 
@@ -77,7 +71,6 @@ class ManualStrategy (object):
             smd_day_before_adj_for_nan = smd_without_nan_series[day_before]
             smd_day_adj_for_nan = smd_without_nan_series[day]
 
-            momentum_day_adj_for_nan = momentum_without_nan_series[day]
             stochastic_day_adj_for_nan = stochastic_without_nan_series[day]
 
             #check if price of stock day before is higher than the upper bb day before
@@ -85,7 +78,6 @@ class ManualStrategy (object):
             if price_day_before_adj_for_nan > upper_band_day_before_adj_for_nan \
                     and price_adj_for_nan < upper_band_day_adj_for_nan \
                     and net_holdings != -1000:
-                    #and momentum_day_adj_for_nan < 0:
                 order_date.append(date_of_order)
                 order_size.append(-1000-net_holdings)
                 net_holdings = -1000
@@ -94,7 +86,6 @@ class ManualStrategy (object):
             elif price_day_before_adj_for_nan < lower_band_day_before_adj_for_nan \
                     and price_adj_for_nan > lower_band_day_adj_for_nan \
                     and net_holdings != 1000:
-                    #and momentum_day_adj_for_nan > 0:
                 order_date.append(date_of_order)
                 order_size.append(1000-net_holdings)
                 net_holdings = 1000
@@ -102,8 +93,7 @@ class ManualStrategy (object):
                 count_b += 1
             elif price_day_before_adj_for_nan > smd_day_before_adj_for_nan \
                     and price_adj_for_nan < smd_day_adj_for_nan * 0.99 \
-                    and net_holdings != -1000 \
-                    and momentum_day_adj_for_nan < 0:
+                    and net_holdings != -1000:
                 order_date.append(date_of_order)
                 order_size.append(-1000-net_holdings)
                 net_holdings = -1000
@@ -111,46 +101,26 @@ class ManualStrategy (object):
                 count_c += 1
             elif price_day_before_adj_for_nan < smd_day_before_adj_for_nan \
                     and price_adj_for_nan > smd_day_adj_for_nan* 1.01 \
-                    and net_holdings != 1000 \
-                    and momentum_day_adj_for_nan > 0:
+                    and net_holdings != 1000:
                 order_date.append(date_of_order)
                 order_size.append(1000-net_holdings)
                 net_holdings = 1000
                 self.long_entry.append(date_of_order)
                 count_d += 1
-            elif stochastic_day_adj_for_nan > 90\
+            elif stochastic_day_adj_for_nan > 85\
                     and net_holdings != -1000:
                 order_date.append(date_of_order)
                 order_size.append(-1000-net_holdings)
                 net_holdings = -1000
                 self.long_entry.append(date_of_order)
                 count_e += 1
-            elif stochastic_day_adj_for_nan < 10\
+            elif stochastic_day_adj_for_nan < 15\
                     and net_holdings != 1000:
                 order_date.append(date_of_order)
                 order_size.append(1000-net_holdings)
                 net_holdings = 1000
                 self.long_entry.append(date_of_order)
                 count_f += 1
-
-
-
-
-
-            #elif momentum_day_adj_for_nan < -.07 and net_holdings != -1000:
-            #    order_date.append(date_of_order)
-            #    order_size.append(-1000 - net_holdings)
-            #    net_holdings = -1000
-            #    self.short_entry.append(date_of_order)
-            #    count_c += 1
-            #elif momentum_day_adj_for_nan > .07 and net_holdings != 1000:
-            #    order_date.append(date_of_order)
-            #    order_size.append(1000 - net_holdings)
-            #    net_holdings = 1000
-            #    self.long_entry.append(date_of_order)
-            #    count_d += 1
-
-
 
         if net_holdings in (1000, -1000): # sell any outstanding share to calculate total cash value of port on last day
             order_date.append(symbols_prices_df.index[-1])
@@ -170,7 +140,7 @@ def main():
     #df_trades with optimal strategy
     df_trades = ms.testPolicy(symbol, sd, ed, 100000)
     df_trades_transformed = df_trades_transform(df_trades, symbol)
-    portvals = compute_portvals(df_trades_transformed, start_val=100000, commission=0, impact=0)
+    portvals = compute_portvals(df_trades_transformed, start_val=100000, commission=9.95, impact=0.005)
     cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio = get_portfolio_stats(portvals)
 
     #df_trades with benchmark (buy once, hold, sell at end)

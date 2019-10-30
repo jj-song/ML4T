@@ -65,10 +65,10 @@ class TheoreticallyOptimalStrategy(object):
 
 
 def main():
-    sd = dt.datetime(2008,1,1)
-    ed = dt.datetime(2012,12,31)
+    sd = dt.datetime(2010,1,1)
+    ed = dt.datetime(2011,12,31)
     tos = TheoreticallyOptimalStrategy()
-    symbol = ''
+    symbol = 'JPM'
 
     #df_trades with optimal strategy
     df_trades = tos.testPolicy(symbol, sd, ed, 100000)

@@ -15,14 +15,9 @@ def get_rolling_std(values, window):
     return rolling_std
 
 def get_bollinger_bands(rolling_mean, rolling_std):
-    upper_band = rolling_mean + rolling_std * 2
-    lower_band = rolling_mean - rolling_std * 2
+    upper_band = rolling_mean + (rolling_std * 2)
+    lower_band = rolling_mean - (rolling_std * 2)
     return upper_band, lower_band
-
-def get_momentum(values, window):
-    test = values.shift(window)
-    momentum = values/values.shift(window-1) - 1
-    return momentum
 
 def get_stochastic(values, window):
     rolling_min = values.rolling(window).min()
@@ -35,52 +30,50 @@ def get_stochastic(values, window):
 def main():
     sd = dt.datetime(2010,1,1)
     ed = dt.datetime(2011,12,31)
+    symbol = 'JPM'
+    window = 20
 
+    symbols_prices_df = get_symbols_prices([symbol], sd, ed)
+    symbols_prices_df = symbols_prices_df.fillna(method="ffill")
+    symbols_prices_df = symbols_prices_df.fillna(method="bfill")
+    prices = symbols_prices_df[symbol].to_frame()
+    normalized_prices = prices / prices.iloc[0,]
+    rolling_mean = get_rolling_mean(normalized_prices, window)
+    rolling_std = get_rolling_std(normalized_prices, window)
+    upper_band, lower_band = get_bollinger_bands(rolling_mean, rolling_std)
+    stochastic = get_stochastic(normalized_prices, window)
 
-    #df_trades with optimal strategy
-    df_trades = ms.testPolicy('JPM', sd, ed, 100000)
-    df_trades_transformed = df_trades_transform(df_trades)
-    portvals = compute_portvals(df_trades_transformed, start_val=100000, commission=0, impact=0)
-    cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio = get_portfolio_stats(portvals)
-
-    #df_trades with benchmark (buy once, hold, sell at end)
-    df_trades_benchmark = ms.test_bench_mark('JPM', sd, ed, 100000)
-    df_trades_benchmark_transformed = df_trades_transform(df_trades_benchmark)
-    portvals_bench = compute_portvals(df_trades_benchmark_transformed, start_val=100000, commission=0, impact=0)
-    cum_ret_bench, avg_daily_ret_bench, std_daily_ret_bench, sharpe_ratio_bench = get_portfolio_stats(portvals_bench)
-
-    print(df_trades)
-    print(df_trades_transformed)
-    print(portvals)
-    # Compare portfolio against $SPX
-    print(f"Date Range: {sd} to {ed}")
-    print()
-    print(f"Sharpe Ratio of Fund: {sharpe_ratio}")
-    print(f"Sharpe Ratio of Benchmark : {sharpe_ratio_bench}")
-    print()
-    print(f"Cumulative Return of Fund: {cum_ret}")
-    print(f"Cumulative Return of Benchmark : {cum_ret_bench}")
-    print()
-    print(f"Standard Deviation of Fund: {std_daily_ret}")
-    print(f"Standard Deviation of Benchmark : {std_daily_ret_bench}")
-    print()
-    print(f"Average Daily Return of Fund: {avg_daily_ret}")
-    print(f"Average Daily Return of Benchmark : {avg_daily_ret_bench}")
-    print()
-    print(f"Final Portfolio Value of Fund: {portvals[-1]}")
-    print(f"Final Portfolio Value of Benchmark: {portvals_bench[-1]}")
-
-    #normalize then plot
-    portvals_normalized = portvals/portvals.iloc[0,]
-    portvals_bench_normalized = portvals_bench/portvals_bench.iloc[0,]
-
-    plt.plot(portvals_normalized, 'r', label="Theoretically Optimal Portfolio")
-    plt.plot(portvals_bench_normalized, 'g', label="Benchmark")
+    #plot simple moving average along with price
+    plt.plot(normalized_prices, 'r', label="Normalized Prices")
+    plt.plot(rolling_mean, 'g', label="SMA")
     plt.legend()
-    plt.title("Theoretically Optimal Portfolio vs Benchmark (Normalized)")
+    plt.title("Normalized Price vs Simple Moving Average (SMA)")
     plt.xlabel("Date")
-    plt.ylabel("Portfolio Value ($)")
-    plt.savefig('Theoretically Optimal Portfolio vs Benchmark (Normalized).png')
+    plt.ylabel("Price ($)")
+    plt.savefig('Normalized Price vs Simple Moving Average (SMA).png')
+    plt.clf()
+
+    #plot simple moving average along with price
+    plt.plot(upper_band, 'b', label="Upper Band")
+    plt.plot(lower_band, 'b', label="Lower Band")
+    plt.plot(rolling_mean, 'g', label="SMA")
+    plt.plot(normalized_prices, 'r', label="Normalized Prices")
+    plt.legend()
+    plt.title("Normalized Price with SMA by Bollinger Bands")
+    plt.xlabel("Date")
+    plt.ylabel("Price ($)")
+    plt.savefig('Normalized Price with SMA by Bollinger Bands')
+    plt.clf()
+
+    #plot stochastic along with price
+    #plt.plot(normalized_prices, 'r', label="Normalized Prices")
+    plt.plot(stochastic, 'b', linewidth=.5, label="Stochastic")
+    plt.legend()
+    plt.title("Normalized Price with Stochastic Oscillator")
+    plt.xlabel("Date")
+    plt.ylabel("Price ($)")
+    plt.savefig('Normalized Price with Stochastic Oscillator')
+    plt.clf()
 
 if __name__ == "__main__":
     main()
