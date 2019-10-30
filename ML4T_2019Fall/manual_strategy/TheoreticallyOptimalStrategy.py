@@ -107,13 +107,14 @@ def main():
     portvals_normalized = portvals/portvals.iloc[0,]
     portvals_bench_normalized = portvals_bench/portvals_bench.iloc[0,]
 
-    plt.plot(portvals_normalized, 'r', label="Theoretically Optimal Portfolio")
-    plt.plot(portvals_bench_normalized, 'g', label="Benchmark")
-    plt.legend()
-    plt.title("Theoretically Optimal Portfolio vs Benchmark (Normalized)")
-    plt.xlabel("Date")
-    plt.ylabel("Portfolio Value ($)")
-    plt.savefig('Theoretically Optimal Portfolio vs Benchmark (Normalized).png')
+    #plot simple moving average along with price
+    joined = portvals_normalized.to_frame().join(portvals_bench_normalized.to_frame(), lsuffix = "top", rsuffix = "b")
+    joined.columns = ["Theoretically Optimal Portfolio", "Benchmark"]
+    fig = joined.plot(title = "Theoretically Optimal Portfolio vs Benchmark (Normalized)", fontsize=12, lw=1, color=["red", "green"])
+    fig.set_xlabel("Date")
+    fig.set_ylabel("Price")
+    plt.savefig("Theoretically Optimal Portfolio vs Benchmark (Normalized)")
+    plt.clf()
 
 if __name__ == "__main__":
     main()

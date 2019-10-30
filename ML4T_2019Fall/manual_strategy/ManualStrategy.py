@@ -174,13 +174,13 @@ def main():
     portvals_normalized = portvals/portvals.iloc[0,]
     portvals_bench_normalized = portvals_bench/portvals_bench.iloc[0,]
 
-    plt.plot(portvals_normalized, 'r', label="Manual Strategy Portfolio")
-    plt.plot(portvals_bench_normalized, 'g', label="Benchmark")
-    plt.legend()
-    plt.title("Manual Strategy vs Benchmark (Normalized)")
-    plt.xlabel("Date")
-    plt.ylabel("Portfolio Value ($)")
-    plt.savefig('Manual Strategy vs Benchmark (Normalized).png')
+    joined = portvals_normalized.to_frame().join(portvals_bench_normalized.to_frame(), lsuffix = "top", rsuffix = "b")
+    joined.columns = ["Manual Strategy Portfolio", "Benchmark"]
+    fig = joined.plot(title = "Manual Strategy vs Benchmark (Normalized)", fontsize=12, lw=1, color=["red", "green"])
+    fig.set_xlabel("Date")
+    fig.set_ylabel("Price")
+    plt.savefig("Manual Strategy vs Benchmark (Normalized)")
+    plt.clf()
 
 if __name__ == "__main__":
     main()

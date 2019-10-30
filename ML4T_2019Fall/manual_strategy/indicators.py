@@ -44,36 +44,35 @@ def main():
     stochastic = get_stochastic(normalized_prices, window)
 
     #plot simple moving average along with price
-    plt.plot(normalized_prices, 'r', label="Normalized Prices")
-    plt.plot(rolling_mean, 'g', label="SMA")
-    plt.legend()
-    plt.title("Normalized Price vs Simple Moving Average (SMA)")
-    plt.xlabel("Date")
-    plt.ylabel("Price ($)")
-    plt.savefig('Normalized Price vs Simple Moving Average (SMA).png')
+    joined = normalized_prices.join(rolling_mean, lsuffix = "Normalized Price", rsuffix = "SMA")
+    joined.columns = ["Normalized Price", "SMA"]
+    fig = joined.plot(title = "Normalized Price with SMA Overlay", fontsize=12, lw=1)
+    fig.set_xlabel("Date")
+    fig.set_ylabel("Price")
+    plt.savefig("Normalized Price with SMA Overlay")
     plt.clf()
 
-    #plot simple moving average along with price
-    plt.plot(upper_band, 'b', label="Upper Band")
-    plt.plot(lower_band, 'b', label="Lower Band")
-    plt.plot(rolling_mean, 'g', label="SMA")
-    plt.plot(normalized_prices, 'r', label="Normalized Prices")
-    plt.legend()
-    plt.title("Normalized Price with SMA by Bollinger Bands")
-    plt.xlabel("Date")
-    plt.ylabel("Price ($)")
-    plt.savefig('Normalized Price with SMA by Bollinger Bands')
+    #plot SMA and Normalized Price and Bollinger Bands
+    joined = normalized_prices.join(rolling_mean, lsuffix = "np", rsuffix = "sma").join(upper_band, lsuffix = "", rsuffix = "ub").join(lower_band, lsuffix="", rsuffix="lb")
+    joined.columns = ["Normalized Price", "SMA", "Upper Band", "Lower Band"]
+    fig = joined.plot(title = "Normalized Price with Bollinger Bands including SMA", fontsize=12, lw=1)
+    fig.set_xlabel("Date")
+    fig.set_ylabel("Price")
+    plt.savefig("Normalized Price with Bollinger Bands including SMA")
     plt.clf()
 
-    #plot stochastic along with price
-    #plt.plot(normalized_prices, 'r', label="Normalized Prices")
-    plt.plot(stochastic, 'b', linewidth=.5, label="Stochastic")
-    plt.legend()
-    plt.title("Normalized Price with Stochastic Oscillator")
-    plt.xlabel("Date")
-    plt.ylabel("Price ($)")
-    plt.savefig('Normalized Price with Stochastic Oscillator')
+    #create subplot with normalized price and stochastic oscillator
+    fig, axs = plt.subplots(2, sharey='row')
+    fig.suptitle("Normalized Price with Stochastic Oscillator Overlay")
+    axs[0].plot(normalized_prices, 'tab:orange')
+    axs[1].plot(stochastic, 'tab:blue')
+    axs[0].set(ylabel="Price")
+    axs[1].set(ylabel="Reading")
+    plt.xticks(rotation=30)
+    plt.setp(axs[0].xaxis.get_majorticklabels(), visible=False)
+    plt.savefig("Normalized Price with Stochastic Oscillator Overlay")
     plt.clf()
+
 
 if __name__ == "__main__":
     main()
