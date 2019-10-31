@@ -6,6 +6,9 @@ import datetime as dt
 from manual_strategy.marketsimcode import get_symbols_prices, df_trades_transform, \
     compute_portvals, get_portfolio_stats
 
+def author():
+    return 'jsong350'
+
 class TheoreticallyOptimalStrategy(object):
 
     def test_bench_mark(self, symbol = "AAPL", sd=dt.datetime(2010, 1, 1), ed=dt.datetime(2011,12,31), sv = 100000):
@@ -65,8 +68,8 @@ class TheoreticallyOptimalStrategy(object):
 
 
 def main():
-    sd = dt.datetime(2010,1,1)
-    ed = dt.datetime(2011,12,31)
+    sd = dt.datetime(2008,1,1)
+    ed = dt.datetime(2009,12,31)
     tos = TheoreticallyOptimalStrategy()
     symbol = 'JPM'
 

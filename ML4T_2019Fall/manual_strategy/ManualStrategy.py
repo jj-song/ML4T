@@ -7,6 +7,9 @@ from manual_strategy.marketsimcode import get_symbols_prices, df_trades_transfor
     compute_portvals, get_portfolio_stats
 from manual_strategy.indicators import get_rolling_mean, get_rolling_std, get_bollinger_bands, get_stochastic
 
+def author():
+    return 'jsong350'
+
 class ManualStrategy (object):
 
     def __init__(self):
@@ -132,8 +135,8 @@ class ManualStrategy (object):
 
 
 def main():
-    sd = dt.datetime(2010,1,1)
-    ed = dt.datetime(2011,12,31)
+    sd = dt.datetime(2008,1,1)
+    ed = dt.datetime(2009,12,31)
     ms = ManualStrategy()
     symbol = 'JPM'
 
@@ -142,6 +145,8 @@ def main():
     df_trades_transformed = df_trades_transform(df_trades, symbol)
     portvals = compute_portvals(df_trades_transformed, start_val=100000, commission=9.95, impact=0.005)
     cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio = get_portfolio_stats(portvals)
+    long = ms.long_entry
+    short = ms.short_entry
 
     #df_trades with benchmark (buy once, hold, sell at end)
     df_trades_benchmark = ms.test_bench_mark(symbol, sd, ed, 100000)
@@ -177,6 +182,9 @@ def main():
     joined = portvals_normalized.to_frame().join(portvals_bench_normalized.to_frame(), lsuffix = "top", rsuffix = "b")
     joined.columns = ["Manual Strategy Portfolio", "Benchmark"]
     fig = joined.plot(title = "Manual Strategy vs Benchmark (Normalized)", fontsize=12, lw=1, color=["red", "green"])
+    ymin, ymax = fig.get_ylim()
+    plt.vlines(long, ymin, ymax, color='blue', lw=.6)
+    plt.vlines(short, ymin, ymax, color='black', lw=.6)
     fig.set_xlabel("Date")
     fig.set_ylabel("Price")
     plt.savefig("Manual Strategy vs Benchmark (Normalized)")

@@ -6,6 +6,9 @@ import datetime as dt
 from manual_strategy.marketsimcode import get_symbols_prices, df_trades_transform, \
     compute_portvals, get_portfolio_stats
 
+def author():
+    return 'jsong350'
+
 def get_rolling_mean(values, window):
     rolling_mean = values.rolling(window).mean()
     return rolling_mean
@@ -28,8 +31,8 @@ def get_stochastic(values, window):
 
 
 def main():
-    sd = dt.datetime(2010,1,1)
-    ed = dt.datetime(2011,12,31)
+    sd = dt.datetime(2008,1,1)
+    ed = dt.datetime(2009,12,31)
     symbol = 'JPM'
     window = 20
 
@@ -70,7 +73,7 @@ def main():
     axs[1].set(ylabel="Reading")
     plt.xticks(rotation=30)
     plt.setp(axs[0].xaxis.get_majorticklabels(), visible=False)
-    plt.savefig("Normalized Price with Stochastic Oscillator Overlay")
+    plt.savefig("Normalized Price with Stochastic Oscillator")
     plt.clf()
 
 
