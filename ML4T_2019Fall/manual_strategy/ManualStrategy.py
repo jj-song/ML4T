@@ -181,13 +181,25 @@ def main():
 
     joined = portvals_normalized.to_frame().join(portvals_bench_normalized.to_frame(), lsuffix = "top", rsuffix = "b")
     joined.columns = ["Manual Strategy Portfolio", "Benchmark"]
-    fig = joined.plot(title = "Manual Strategy vs Benchmark (Normalized)", fontsize=12, lw=1, color=["red", "green"])
-    ymin, ymax = fig.get_ylim()
-    plt.vlines(long, ymin, ymax, color='blue', lw=.6)
-    plt.vlines(short, ymin, ymax, color='black', lw=.6)
+    fig = joined.plot(title = "Manual Strategy vs Benchmark (In-Sample)", fontsize=12, lw=1, color=["red", "green"])
+    #ymin, ymax = fig.get_ylim()
+    #plt.vlines(long, ymin, ymax, color='blue', lw=.6)
+    #plt.vlines(short, ymin, ymax, color='black', lw=.6)
     fig.set_xlabel("Date")
     fig.set_ylabel("Price")
-    plt.savefig("Manual Strategy vs Benchmark (Normalized)")
+    plt.savefig("Manual Strategy vs Benchmark (In-Sample)")
+    plt.clf()
+
+    #change the date above before running this for out-sample
+    joined = portvals_normalized.to_frame().join(portvals_bench_normalized.to_frame(), lsuffix = "top", rsuffix = "b")
+    joined.columns = ["Manual Strategy Portfolio", "Benchmark"]
+    fig = joined.plot(title = "Manual Strategy vs Benchmark (Out-of-Sample)", fontsize=12, lw=1, color=["red", "green"])
+    #ymin, ymax = fig.get_ylim()
+    #plt.vlines(long, ymin, ymax, color='blue', lw=.6)
+    #plt.vlines(short, ymin, ymax, color='black', lw=.6)
+    fig.set_xlabel("Date")
+    fig.set_ylabel("Price")
+    plt.savefig("Manual Strategy vs Benchmark (Out-of-Sample)")
     plt.clf()
 
 if __name__ == "__main__":
