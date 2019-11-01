@@ -39,7 +39,7 @@ class ManualStrategy (object):
         stochastic = get_stochastic(prices, window)
 
         upper_band_without_nan = upper_band[upper_band.notnull()].to_frame()
-        upper_band_without_nan_series = upper_band[upper_band.notnull()]
+        upper_band_without_nan_series = upper_band[upper_band.notnull()] #use this going forward otherwise NaN days will be included
         lower_band_without_nan_series = lower_band[lower_band.notnull()]
         smd_without_nan_series = rolling_mean[rolling_mean.notnull()]
         stochastic_without_nan_series = stochastic[stochastic.notnull()]
@@ -51,12 +51,12 @@ class ManualStrategy (object):
         prices_adj_for_nan = symbols_prices_df_adj_for_nan[symbol]
         total_number_of_trading_days = len(symbols_prices_df_adj_for_nan.index)
 
-        count_a = 0
-        count_b = 0
-        count_c = 0
-        count_d = 0
-        count_e = 0
-        count_f = 0
+        # count_a = 0
+        # count_b = 0
+        # count_c = 0
+        # count_d = 0
+        # count_e = 0
+        # count_f = 0
 
         for day in range(total_number_of_trading_days-1): # minus 1 to offset last day
             day = day+1 #ignore first day since -1 will get last day of series
@@ -85,7 +85,7 @@ class ManualStrategy (object):
                 order_size.append(-1000-net_holdings)
                 net_holdings = -1000
                 self.short_entry.append(date_of_order)
-                count_a += 1
+                #count_a += 1
             elif price_day_before_adj_for_nan < lower_band_day_before_adj_for_nan \
                     and price_adj_for_nan > lower_band_day_adj_for_nan \
                     and net_holdings != 1000:
@@ -93,7 +93,7 @@ class ManualStrategy (object):
                 order_size.append(1000-net_holdings)
                 net_holdings = 1000
                 self.long_entry.append(date_of_order)
-                count_b += 1
+                #count_b += 1
             elif price_day_before_adj_for_nan > smd_day_before_adj_for_nan \
                     and price_adj_for_nan < smd_day_adj_for_nan * 0.99 \
                     and net_holdings != -1000:
@@ -101,7 +101,7 @@ class ManualStrategy (object):
                 order_size.append(-1000-net_holdings)
                 net_holdings = -1000
                 self.short_entry.append(date_of_order)
-                count_c += 1
+                #count_c += 1
             elif price_day_before_adj_for_nan < smd_day_before_adj_for_nan \
                     and price_adj_for_nan > smd_day_adj_for_nan* 1.01 \
                     and net_holdings != 1000:
@@ -109,21 +109,21 @@ class ManualStrategy (object):
                 order_size.append(1000-net_holdings)
                 net_holdings = 1000
                 self.long_entry.append(date_of_order)
-                count_d += 1
+                #count_d += 1
             elif stochastic_day_adj_for_nan > 85\
                     and net_holdings != -1000:
                 order_date.append(date_of_order)
                 order_size.append(-1000-net_holdings)
                 net_holdings = -1000
                 self.long_entry.append(date_of_order)
-                count_e += 1
+                #count_e += 1
             elif stochastic_day_adj_for_nan < 15\
                     and net_holdings != 1000:
                 order_date.append(date_of_order)
                 order_size.append(1000-net_holdings)
                 net_holdings = 1000
                 self.long_entry.append(date_of_order)
-                count_f += 1
+                #count_f += 1
 
         if net_holdings in (1000, -1000): # sell any outstanding share to calculate total cash value of port on last day
             order_date.append(symbols_prices_df.index[-1])

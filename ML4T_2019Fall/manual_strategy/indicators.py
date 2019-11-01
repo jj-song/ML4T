@@ -3,8 +3,7 @@ import numpy as np
 from util import get_data, plot_data
 import matplotlib.pyplot as plt
 import datetime as dt
-from manual_strategy.marketsimcode import get_symbols_prices, df_trades_transform, \
-    compute_portvals, get_portfolio_stats
+from manual_strategy.marketsimcode import get_symbols_prices
 
 def author():
     return 'jsong350'
@@ -26,9 +25,7 @@ def get_stochastic(values, window):
     rolling_min = values.rolling(window).min()
     rolling_max = values.rolling(window).max()
     k = ((values-rolling_min) / (rolling_max-rolling_min)) * 100
-
     return k
-
 
 def main():
     sd = dt.datetime(2008,1,1)

@@ -44,8 +44,6 @@ def get_symbols_prices(symbols, start_date, end_date):
     symbols_prices_df = get_data(symbols, pd.date_range(start_date, end_date))
     return symbols_prices_df
 
-
-
 def initialize_symbols_to_prices_df(df, symbols, start_val):
     for symbol in symbols:
         df[symbol + ' Shares'] = pd.Series(0, index=df.index)
@@ -88,6 +86,7 @@ def get_portfolio_stats(pv):
 
     return cum_ret, avg_daily_ret, std_daily_ret, sharpe_ratio
 
+#You need to run this otherwise it won't be in the correct orders format accepted by compute_portvals.
 def df_trades_transform(df_trades, symbol):
     symbols = []
     orders = []
