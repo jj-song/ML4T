@@ -3,9 +3,9 @@ import numpy as np
 from util import get_data, plot_data
 import matplotlib.pyplot as plt
 import datetime as dt
-from manual_strategy.marketsimcode import get_symbols_prices, df_trades_transform, \
+from strategy_learner.marketsimcode import get_symbols_prices, df_trades_transform, \
     compute_portvals, get_portfolio_stats
-from manual_strategy.indicators import get_rolling_mean, get_rolling_std, get_bollinger_bands, get_stochastic
+from strategy_learner.indicators import get_rolling_mean, get_rolling_std, get_bollinger_bands, get_stochastic
 
 def author():
     return 'jsong350'

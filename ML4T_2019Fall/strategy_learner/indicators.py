@@ -19,13 +19,28 @@ def get_rolling_std(values, window):
 def get_bollinger_bands(rolling_mean, rolling_std):
     upper_band = rolling_mean + (rolling_std * 2)
     lower_band = rolling_mean - (rolling_std * 2)
-    return upper_band, lower_band
+    upper_band_one_std = rolling_mean + (rolling_std)
+    lower_band_one_std = rolling_mean - (rolling_std)
+    return upper_band, lower_band, upper_band_one_std, lower_band_one_std
 
 def get_stochastic(values, window):
     rolling_min = values.rolling(window).min()
     rolling_max = values.rolling(window).max()
     k = ((values-rolling_min) / (rolling_max-rolling_min)) * 100
     return k
+
+def get_all_indicators(sd, ed, symbol, window, plot):
+    symbols_prices_df = get_symbols_prices([symbol], sd, ed)
+    symbols_prices_df = symbols_prices_df.fillna(method="ffill")
+    symbols_prices_df = symbols_prices_df.fillna(method="bfill")
+    prices = symbols_prices_df[symbol].to_frame()
+    normalized_prices = prices / prices.iloc[0,]
+    rolling_mean = get_rolling_mean(normalized_prices, window)
+    rolling_std = get_rolling_std(normalized_prices, window)
+    upper_band, lower_band, upper_band_one_std, lower_band_one_std = get_bollinger_bands(rolling_mean, rolling_std)
+    k = get_stochastic(normalized_prices, window)
+
+    return rolling_mean, upper_band, lower_band, upper_band_one_std, lower_band_one_std, rolling_std, k
 
 def main():
     sd = dt.datetime(2008,1,1)

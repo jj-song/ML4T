@@ -3,76 +3,67 @@ import numpy as np
 from util import get_data, plot_data
 import matplotlib.pyplot as plt
 import datetime as dt
-from manual_strategy.marketsimcode import get_symbols_prices
-
-def author():
-    return 'jsong350'
-
-def get_rolling_mean(values, window):
-    rolling_mean = values.rolling(window).mean()
-    return rolling_mean
-
-def get_rolling_std(values, window):
-    rolling_std = values.rolling(window).std()
-    return rolling_std
-
-def get_bollinger_bands(rolling_mean, rolling_std):
-    upper_band = rolling_mean + (rolling_std * 2)
-    lower_band = rolling_mean - (rolling_std * 2)
-    return upper_band, lower_band
-
-def get_stochastic(values, window):
-    rolling_min = values.rolling(window).min()
-    rolling_max = values.rolling(window).max()
-    k = ((values-rolling_min) / (rolling_max-rolling_min)) * 100
-    return k
+from strategy_learner.marketsimcode import get_symbols_prices, df_trades_transform, \
+    compute_portvals, get_portfolio_stats
+from strategy_learner.indicators import get_rolling_mean, get_rolling_std, get_bollinger_bands, get_stochastic
+import strategy_learner.ManualStrategy as ms
+import strategy_learner.StrategyLearner as sl
 
 def main():
     sd = dt.datetime(2008,1,1)
     ed = dt.datetime(2009,12,31)
     symbol = 'JPM'
-    window = 20
+    sv = 100000
 
-    symbols_prices_df = get_symbols_prices([symbol], sd, ed)
-    symbols_prices_df = symbols_prices_df.fillna(method="ffill")
-    symbols_prices_df = symbols_prices_df.fillna(method="bfill")
-    prices = symbols_prices_df[symbol].to_frame()
-    normalized_prices = prices / prices.iloc[0,]
-    rolling_mean = get_rolling_mean(normalized_prices, window)
-    rolling_std = get_rolling_std(normalized_prices, window)
-    upper_band, lower_band = get_bollinger_bands(rolling_mean, rolling_std)
-    stochastic = get_stochastic(normalized_prices, window)
+    manual = ms.ManualStrategy()
+    strategy = sl.StrategyLearner()
 
-    #plot simple moving average along with price
-    joined = normalized_prices.join(rolling_mean, lsuffix = "Normalized Price", rsuffix = "SMA")
-    joined.columns = ["Normalized Price", "SMA"]
-    fig = joined.plot(title = "Normalized Price with SMA Overlay", fontsize=12, lw=1)
-    fig.set_xlabel("Date")
-    fig.set_ylabel("Price")
-    plt.savefig("Normalized Price with SMA Overlay")
-    plt.clf()
+    #df_trades_manual with manual strategy
+    df_trades_manual = manual.testPolicy(symbol, sd, ed, 100000)
+    df_trades_manual_transformed = df_trades_transform(df_trades_manual, symbol)
+    manual_portvals = compute_portvals(df_trades_manual_transformed, start_val=100000, commission=9.95, impact=0.005)
+    cum_ret_manual, avg_daily_ret_manual, std_daily_ret_manual, sharpe_ratio_manual = get_portfolio_stats(manual_portvals)
 
-    #plot SMA and Normalized Price and Bollinger Bands
-    joined = normalized_prices.join(rolling_mean, lsuffix = "np", rsuffix = "sma").join(upper_band, lsuffix = "", rsuffix = "ub").join(lower_band, lsuffix="", rsuffix="lb")
-    joined.columns = ["Normalized Price", "SMA", "Upper Band", "Lower Band"]
-    fig = joined.plot(title = "Normalized Price with Bollinger Bands including SMA", fontsize=12, lw=1)
-    fig.set_xlabel("Date")
-    fig.set_ylabel("Price")
-    plt.savefig("Normalized Price with Bollinger Bands including SMA")
-    plt.clf()
+    #df_trades with benchmark (buy once, hold, sell at end)
+    df_trades_benchmark = ms.test_bench_mark(symbol, sd, ed, 100000)
+    df_trades_benchmark_transformed = df_trades_transform(df_trades_benchmark, symbol)
+    portvals_bench = compute_portvals(df_trades_benchmark_transformed, start_val=100000, commission=0, impact=0)
+    cum_ret_bench, avg_daily_ret_bench, std_daily_ret_bench, sharpe_ratio_bench = get_portfolio_stats(portvals_bench)
 
-    #create subplot with normalized price and stochastic oscillator
-    fig, axs = plt.subplots(2, sharey='row')
-    fig.suptitle("Normalized Price with Stochastic Oscillator Overlay")
-    axs[0].plot(normalized_prices, 'tab:orange')
-    axs[1].plot(stochastic, 'tab:blue')
-    axs[0].set(ylabel="Price")
-    axs[1].set(ylabel="Reading")
-    plt.xticks(rotation=30)
-    plt.setp(axs[0].xaxis.get_majorticklabels(), visible=False)
-    plt.savefig("Normalized Price with Stochastic Oscillator")
-    plt.clf()
+    #df_trades_strategy with strategy learner
+    strategy = strategy.StrategyLearner(verbose = False, impact=0.0)
+    strategy.addEvidence(symbol, sd, ed, sv)
+    df_trades_sl = strategy.testPolicy(symbol, sd, ed, sv)
+    sl_portvals = compute_portvals(df_trades_sl, start_val=100000, commission=0, impact=0)
+    cum_ret_sl, avg_daily_ret_sl, std_daily_ret_sl, sharpe_ratio_sl = get_portfolio_stats(sl_portvals)
 
+
+
+    print(df_trades_manual)
+    print(df_trades_manual_transformed)
+    print(manual_portvals)
+    # Compare portfolio against $SPX
+    print(f"Date Range: {sd} to {ed}")
+    print()
+    print(f"Sharpe Ratio of Fund: {sharpe_ratio_manual}")
+    print(f"Sharpe Ratio of Benchmark : {sharpe_ratio_bench}")
+    print(f"Sharpe Ratio of Benchmark : {sharpe_ratio_sl}")
+    print()
+    print(f"Cumulative Return of Fund: {cum_ret_manual}")
+    print(f"Cumulative Return of Benchmark : {cum_ret_bench}")
+    print(f"Cumulative Return of Benchmark : {cum_ret_sl}")
+    print()
+    print(f"Standard Deviation of Fund: {std_daily_ret_manual}")
+    print(f"Standard Deviation of Benchmark : {std_daily_ret_bench}")
+    print(f"Standard Deviation of Benchmark : {std_daily_ret_sl}")
+    print()
+    print(f"Average Daily Return of Fund: {avg_daily_ret_manual}")
+    print(f"Average Daily Return of Benchmark : {avg_daily_ret_bench}")
+    print(f"Average Daily Return of Benchmark : {avg_daily_ret_sl}")
+    print()
+    print(f"Final Portfolio Value of Fund: {manual_portvals[-1]}")
+    print(f"Final Portfolio Value of Benchmark: {portvals_bench[-1]}")
+    print(f"Final Portfolio Value of Benchmark: {sl_portvals[-1]}")
 
 if __name__ == "__main__":
     main()

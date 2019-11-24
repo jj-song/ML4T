@@ -1,8 +1,4 @@
 import numpy as np
-import DTLearner as dt
-import RTLearner as rt
-import BagLearner as bl
-import LinRegLearner as lrl
 
 class BagLearner(object):
 
