@@ -51,6 +51,39 @@ def initialize_symbols_to_prices_df(df, symbols, start_val):
         df['Cash'] = pd.Series(start_val, index=df.index)
     return df
 
+def discretize(indicators):
+    bins_rm = [0, .2, .4, .6, .8, 1, 1.2, 1.4, 1.6, 1.8, 2]
+    bins_ub = [0, .2, .4, .6, .8, 1, 1.2, 1.4, 1.6, 1.8, 2]
+    bins_lb = [0, .2, .4, .6, .8, 1, 1.2, 1.4, 1.6, 1.8, 2]
+    bins_k = [-0.01, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100.1]
+    group_names = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+    indicators['rm'] = pd.cut(indicators['rolling_mean'], bins_rm, labels=group_names)
+    indicators['ub'] = pd.cut(indicators['upper_band'], bins_ub, labels=group_names)
+    indicators['lb'] = pd.cut(indicators['lower_band'], bins_lb, labels=group_names)
+    indicators['stoc'] = pd.cut(indicators['k'], bins_k, labels=group_names)
+
+    indicators = indicators.drop('rolling_mean', axis=1)
+    indicators = indicators.drop('upper_band', axis=1)
+    indicators = indicators.drop('lower_band', axis=1)
+    indicators = indicators.drop('k', axis=1)
+    indicators['state'] = indicators['rm'].astype(str) \
+                          + indicators['ub'].astype(str) \
+                          + indicators['lb'].astype(str) \
+                          + indicators['stoc'].astype(str)
+
+    indicators = indicators.drop('rm', axis=1)
+    indicators = indicators.drop('ub', axis=1)
+    indicators = indicators.drop('lb', axis=1)
+    indicators = indicators.drop('stoc', axis=1)
+
+    return indicators
+
+def get_daily_returns(port_val):
+    daily = port_val.copy()
+    daily[1:] = (port_val[1:] / port_val[:-1].values) - 1
+    return daily
+
 def initalize_data(orders, start_val):
     #begin
     orders_df = orders

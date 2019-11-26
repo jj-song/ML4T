@@ -30,95 +30,113 @@ import datetime as dt
 import pandas as pd  		   	  			  	 		  		  		    	 		 		   		 		  
 import util as ut  		   	  			  	 		  		  		    	 		 		   		 		  
 import random
-import strategy_learner.BagLearner as bl
-from strategy_learner.indicators import *
-import strategy_learner.RTLearner as rt
-  		   	  			  	 		  		  		    	 		 		   		 		  
-class StrategyLearner(object):  		   	  			  	 		  		  		    	 		 		   		 		  
-  		   	  			  	 		  		  		    	 		 		   		 		  
-    # constructor  		   	  			  	 		  		  		    	 		 		   		 		  
-    def __init__(self, verbose = False, impact=0.0):  		   	  			  	 		  		  		    	 		 		   		 		  
-        self.verbose = verbose  		   	  			  	 		  		  		    	 		 		   		 		  
+import numpy as np
+import QLearner as ql
+from indicators import get_all_indicators
+from marketsimcode import get_daily_returns, discretize
+
+class StrategyLearner(object):
+
+    # constructor
+    def __init__(self, verbose = False, impact=0.0):
+        self.verbose = verbose
         self.impact = impact
-        self.N = 10
-        #self.learner = bl.BagLearner(kwargs = {"leaf_size":5, "verbose": False}, bags = 20)
-        self.learner = bl.BagLearner(learner = rt.RTLearner, kwargs ={"leaf_size":5}, bags = 25, boost = False, verbose = False)
+        self.ql = ql.QLearner(num_states=10000, num_actions=3, alpha=0.2, gamma=0.9, rar=0.5, radr=0.99, dyna=0, verbose=False)
 
-    def get_x_train_data(self, prices, sd, ed, window, symbol):
-        rolling_mean, upper_band, lower_band, upper_band_one_std, lower_band_one_std, \
-        rolling_std, k = get_all_indicators(sd, ed, symbol, window, False)
-
-        x_train_data = np.zeros((len(prices) - self.N, 9))
-
-        for index in range(0, len(prices) - self.N,9):
-            x_train_data[index][0] = prices.iloc[index]
-            x_train_data[index][1] = rolling_mean.iloc[index]
-            x_train_data[index][2] = rolling_std.iloc[index]
-            x_train_data[index][3] = upper_band_one_std.iloc[index]
-            x_train_data[index][4] = lower_band_one_std.iloc[index]
-            x_train_data[index][5] = upper_band.iloc[index]
-            x_train_data[index][6] = lower_band.iloc[index]
-            x_train_data[index][7] = k.iloc[index]
-            x_train_data[index][8] = prices.iloc[index + self.N]
-        return x_train_data
-
-    def get_x_test_data(self, prices, sd, ed, window, symbol):
-        rolling_mean, upper_band, lower_band, upper_band_one_std, lower_band_one_std, \
-        rolling_std, k = get_all_indicators(sd, ed, symbol, window, False)
-
-        x_test_data = np.zeros((len(prices) - self.N, 9))
-
-        for index in range(0, len(prices) - self.N,9):
-            x_test_data[index][1] = rolling_mean.iloc[index]
-            x_test_data[index][2] = rolling_std.iloc[index]
-            x_test_data[index][3] = upper_band_one_std.iloc[index]
-            x_test_data[index][4] = lower_band_one_std.iloc[index]
-            x_test_data[index][5] = upper_band.iloc[index]
-            x_test_data[index][6] = lower_band.iloc[index]
-        return x_test_data
-  		   	  			  	 		  		  		    	 		 		   		 		  
-    # this method should create a QLearner, and train it for trading  		   	  			  	 		  		  		    	 		 		   		 		  
+    # this method should create a QLearner, and train it for trading
     def addEvidence(self, symbol = "IBM", \
         sd=dt.datetime(2008,1,1), \
         ed=dt.datetime(2009,1,1), \
-        sv = 10000):  		   	  			  	 		  		  		    	 		 		   		 		  
+        sv = 10000):
 
-        # example usage of the old backward compatible util function  		   	  			  	 		  		  		    	 		 		   		 		  
-        syms=[symbol]  		   	  			  	 		  		  		    	 		 		   		 		  
-        dates = pd.date_range(sd, ed)  		   	  			  	 		  		  		    	 		 		   		 		  
-        prices_all = ut.get_data(syms, dates)  # automatically adds SPY  		   	  			  	 		  		  		    	 		 		   		 		  
-        prices = prices_all[syms]  # only portfolio symbols  		   	  			  	 		  		  		    	 		 		   		 		  
-        prices_SPY = prices_all['SPY']  # only SPY, for comparison later  		   	  			  	 		  		  		    	 		 		   		 		  
-        if self.verbose: print(prices)
+        N=30
+        K=2*N
+        sd_original = sd
+        window = 20
 
         # add your code to do learning here
-        x_train_data = self.get_x_train_data(prices, sd, ed, syms)
-        x_train_data = x_train_data[:, 1:-1]
+        sd = sd - dt.timedelta(K)
 
-        y_train_data = []
-        for index in range(0, x_train_data.shape[0]):
-            if x_train_data[index, -1] / x_train_data[index, 0] > 1.02 + self.impact:
-                y_train_data.append(1000)
-            elif x_train_data[index, -1] / x_train_data[index, 0] < 0.98-self.impact:
-                y_train_data.append(-1000)
-            else:
-                y_train_data.append(0)
+        # example usage of the old backward compatible util function
+        syms=[symbol]
+        dates = pd.date_range(sd, ed)
+        prices_all = ut.get_data(syms, dates)  # automatically adds SPY
+        prices = prices_all[syms]  # only portfolio symbols
+        prices_SPY = prices_all['SPY']  # only SPY, for comparison later
+        if self.verbose: print(prices)
 
-        y_train_data = np.array(y_train_data)
+        prices_normalized, rolling_mean, upper_band, lower_band, rolling_std, k = \
+            get_all_indicators(sd, ed, syms, window, False)
 
-        self.learner.addEvidence(x_train_data, y_train_data)
-  		   	  			  	 		  		  		    	 		 		   		 		  
-        # # example use with new colname
-        # volume_all = ut.get_data(syms, dates, colname = "Volume")  # automatically adds SPY
-        # volume = volume_all[syms]  # only portfolio symbols
-        # volume_SPY = volume_all['SPY']  # only SPY, for comparison later
-        # if self.verbose: print(volume)
-  		   	  			  	 		  		  		    	 		 		   		 		  
-    # this method should use the existing policy and test it against new data  		   	  			  	 		  		  		    	 		 		   		 		  
+        indicators = pd.concat([rolling_mean, upper_band, lower_band, k], axis=1)
+        indicators = indicators.loc[sd_original:]
+        indicators.columns = ['rolling_mean', 'upper_band', 'lower_band', 'k']
+        prices_normalized = prices_normalized.loc[sd_original:]
+
+        daily_price_change = get_daily_returns(prices_normalized)
+
+        indicators = discretize(indicators)
+
+        initial_state = indicators.iloc[0]['state']
+
+        self.ql.querysetstate((int(float(initial_state))))
+
+        orders = pd.DataFrame(0, index = prices_normalized.index, columns = ['Shares'])
+        buy_sell = pd.DataFrame('BUY', index=prices_normalized.index, columns=['Order'])
+        symbol_df = pd.DataFrame(symbol, index=prices_normalized.index, columns=['Symbol'])
+
+        df_trades = pd.concat([symbol_df, buy_sell, orders], axis=1)
+        df_trades.columns = ['Symbol', 'Order', 'Shares']
+
+        df_trades_copy = df_trades.copy()
+
+        i = 0
+
+        while i < 250:
+            i +=1
+            reward = 0
+            total_holdings = 0
+            print("this is " + str(i) + " time")
+            df_trades_copy = df_trades.copy()
+
+            for index, row in prices_normalized.iterrows():
+                reward = total_holdings * daily_price_change.loc[index] * (1 - self.impact)
+                a = self.ql.query(int(float(indicators.loc[index]['state'])), reward)
+                if(a ==1) and (total_holdings < 1000):
+                    buy_sell.loc[index]['Order'] = 'BUY'
+                    if total_holdings ==0:
+                        orders.loc[index]['Shares'] = 1000
+                        total_holdings += 1000
+                    else:
+                        orders.loc[index]['Shares'] = 2000
+                        total_holdings += 2000
+                elif (a ==2) and (total_holdings > -1000):
+                    buy_sell.loc[index]['Order'] = 'SELL'
+                    if total_holdings == 0:
+                        orders.loc[index]['Shares'] = -1000
+                        total_holdings = total_holdings -1000
+                    else:
+                        orders.loc[index]['Shares'] = -2000
+                        total_holdings = total_holdings - 2000
+
+            df_trades = pd.concat([symbol_df, buy_sell, orders], axis=1)
+            df_trades.columns = ['Symbol', 'Order', 'Shares']
+
+        print(df_trades)
+
+
+    # this method should use the existing policy and test it against new data
     def testPolicy(self, symbol = "IBM", \
         sd=dt.datetime(2009,1,1), \
         ed=dt.datetime(2010,1,1), \
         sv = 10000):
+
+        N = 30
+        K = N+30
+        sd_original = sd
+        window = 20
+
+        sd = sd - dt.timedelta(K)
 
         syms=[symbol]
         dates = pd.date_range(sd, ed)
@@ -127,30 +145,59 @@ class StrategyLearner(object):
         prices_SPY = prices_all['SPY']  # only SPY, for comparison later
         if self.verbose: print(prices)
 
-        x_train_data = self.get_x_train_data(prices_SPY, sd, ed, syms)
-        query = self.learner.query(x_train_data)
-        trades = pd.DataFrame(0, columns = prices.columns, index= prices.index)
+        prices_normalized, rolling_mean, upper_band, lower_band, rolling_std, k = \
+            get_all_indicators(sd, ed, syms, window, False)
 
-        share = 0
-        for index in range(0, len(prices) - self.N):
-            if query[index] == 1000:
-                if share ==0:
-                    share = 1000
-                    trades.iloc[index, 0] = 1000
-                elif share == -1000:
-                    share = 1000
-                    trades.iloc[index, 0] = 2000
-            if query[index] == -1000:
-                if share ==0:
-                    share = -1000
-                    trades.iloc[index, 0] = -1000
-                elif share ==1000:
-                    share = -1000
-                    trades.iloc[index, 0] = -2000
+        indicators = pd.concat([rolling_mean, upper_band, lower_band, k], axis=1)
+        indicators = indicators.loc[sd_original:]
+        indicators.columns = ['rolling_mean', 'upper_band', 'lower_band', 'k']
+        prices_normalized = prices_normalized.loc[sd_original:]
 
-  		   	  			  	 		  		  		    	 		 		   		 		  
-        # here we build a fake set of trades  		   	  			  	 		  		  		    	 		 		   		 		  
-        # your code should return the same sort of data  		   	  			  	 		  		  		    	 		 		   		 		  
+        daily_price_change = get_daily_returns(prices_normalized)
+
+        indicators = discretize(indicators)
+
+        initial_state = indicators.iloc[0]['state']
+
+        self.ql.querysetstate((int(float(initial_state))))
+
+        orders = pd.DataFrame(0, index = prices_normalized.index, columns = ['Shares'])
+        buy_sell = pd.DataFrame('BUY', index=prices_normalized.index, columns=['Order'])
+        symbol_df = pd.DataFrame(symbol, index=prices_normalized.index, columns=['Symbol'])
+
+        reward = 0
+        total_holdings = 0
+        for index, row in prices_normalized.iterrows():
+            reward = total_holdings * daily_price_change.loc[index]
+
+            a = self.ql.querysetstate(int(float(indicators.loc[index]['state'])))
+            if (a == 1) and (total_holdings < 1000):
+                buy_sell.loc[index]['Order'] = 'BUY'
+                if total_holdings == 0:
+                    orders.loc[index]['Shares'] = 1000
+                    total_holdings += 1000
+                else:
+                    orders.loc[index]['Shares'] = 2000
+                    total_holdings += 2000
+            elif (a == 2) and (total_holdings > -1000):
+                buy_sell.loc[index]['Order'] = 'SELL'
+                if total_holdings == 0:
+                    orders.loc[index]['Shares'] = -1000
+                    total_holdings = total_holdings - 1000
+                else:
+                    orders.loc[index]['Shares'] = -2000
+                    total_holdings = total_holdings - 2000
+
+        df_trades = pd.concat([symbol_df, buy_sell, orders], axis=1)
+        df_trades.columns = ['Symbol', 'Order', 'Shares']
+
+        df_trades = df_trades.drop('Symbol', axis=1)
+        df_trades = df_trades.drop('Order', axis=1)
+
+        return df_trades
+
+        # # here we build a fake set of trades
+        # # your code should return the same sort of data
         # dates = pd.date_range(sd, ed)
         # prices_all = ut.get_data([symbol], dates)  # automatically adds SPY
         # trades = prices_all[[symbol,]]  # only portfolio symbols
@@ -162,10 +209,10 @@ class StrategyLearner(object):
         # trades.values[60,:] = -2000 # go short from long
         # trades.values[61,:] = 2000 # go long from short
         # trades.values[-1,:] = -1000 #exit on the last day
-        if self.verbose: print(type(trades)) # it better be a DataFrame!  		   	  			  	 		  		  		    	 		 		   		 		  
-        if self.verbose: print(trades)  		   	  			  	 		  		  		    	 		 		   		 		  
-        if self.verbose: print(prices_all)  		   	  			  	 		  		  		    	 		 		   		 		  
-        return trades  		   	  			  	 		  		  		    	 		 		   		 		  
+        # if self.verbose: print(type(trades)) # it better be a DataFrame!
+        # if self.verbose: print(trades)
+        # if self.verbose: print(prices_all)
+        # return trades
 
 if __name__=="__main__":  		   	  			  	 		  		  		    	 		 		   		 		  
     print("One does not simply think up a strategy")  		   	  			  	 		  		  		    	 		 		   		 		  
