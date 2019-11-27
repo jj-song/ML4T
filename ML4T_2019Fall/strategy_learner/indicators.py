@@ -27,7 +27,11 @@ def get_stochastic(values, window):
     k = ((values-rolling_min) / (rolling_max-rolling_min)) * 100
     return k
 
-def get_all_indicators(sd, ed, symbol, window, plot):
+def adjust_for_nan(date, window):
+    date = date - dt.timedelta(window*2)
+    return date
+
+def get_all_factors(sd, ed, symbol, window, plot):
     symbols_prices_df = get_symbols_prices(symbol, sd, ed)
     symbols_prices_df = symbols_prices_df.fillna(method="ffill")
     symbols_prices_df = symbols_prices_df.fillna(method="bfill")

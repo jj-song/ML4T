@@ -15,7 +15,7 @@ def main():
     sv = 100000
 
     manual = ms.ManualStrategy()
-    strategy = sl.StrategyLearner(verbose=False, impact=0.0)
+    strategy = sl.StrategyLearner(verbose=False, impact=0.05)
 
     #df_trades_strategy with strategy learner
     strategy.addEvidence(symbol=symbol)
@@ -26,19 +26,19 @@ def main():
     df_trades_sl = df_trades_sl[df_trades_sl.Shares !=0]
     df_trades_sl = df_trades_sl[['Symbol', 'Order', 'Shares']]
 
-    sl_portvals = compute_portvals(df_trades_sl, start_val=sv, commission=0, impact=0)
+    sl_portvals = compute_portvals(df_trades_sl, start_val=sv, commission=0, impact=0.05)
     cum_ret_sl, avg_daily_ret_sl, std_daily_ret_sl, sharpe_ratio_sl = get_portfolio_stats(sl_portvals)
 
     #df_trades_manual with manual strategy
     df_trades_manual = manual.testPolicy(symbol, sd, ed, sv)
     df_trades_manual_transformed = df_trades_transform(df_trades_manual, symbol)
-    manual_portvals = compute_portvals(df_trades_manual_transformed, start_val=sv, commission=0, impact=0)
+    manual_portvals = compute_portvals(df_trades_manual_transformed, start_val=sv, commission=0, impact=0.05)
     cum_ret_manual, avg_daily_ret_manual, std_daily_ret_manual, sharpe_ratio_manual = get_portfolio_stats(manual_portvals)
 
     #df_trades with benchmark (buy once, hold, sell at end)
     df_trades_benchmark = manual.test_bench_mark(symbol, sd, ed, sv)
     df_trades_benchmark_transformed = df_trades_transform(df_trades_benchmark, symbol)
-    portvals_bench = compute_portvals(df_trades_benchmark_transformed, start_val=sv, commission=0, impact=0)
+    portvals_bench = compute_portvals(df_trades_benchmark_transformed, start_val=sv, commission=0, impact=0.05)
     cum_ret_bench, avg_daily_ret_bench, std_daily_ret_bench, sharpe_ratio_bench = get_portfolio_stats(portvals_bench)
 
     chart_df = pd.concat([manual_portvals, portvals_bench, sl_portvals], axis=1)

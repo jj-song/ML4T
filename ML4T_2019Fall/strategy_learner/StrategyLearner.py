@@ -32,8 +32,8 @@ import util as ut
 import random
 import numpy as np
 import QLearner as ql
-from indicators import get_all_indicators
-from marketsimcode import get_daily_returns, discretize
+from indicators import get_all_factors, adjust_for_nan
+from marketsimcode import calculate_reward, discretize, combine_indicators, prepare_dataframes
 
 class StrategyLearner(object):
 
@@ -43,156 +43,118 @@ class StrategyLearner(object):
         self.impact = impact
         self.ql = ql.QLearner(num_states=10000, num_actions=3, alpha=0.2, gamma=0.9, rar=0.5, radr=0.99, dyna=0, verbose=False)
 
+
     # this method should create a QLearner, and train it for trading
     def addEvidence(self, symbol = "IBM", \
         sd=dt.datetime(2008,1,1), \
         ed=dt.datetime(2009,1,1), \
         sv = 10000):
-
-        N=30
-        K=2*N
-        sd_original = sd
+        anchor_sd = sd
         window = 20
 
         # add your code to do learning here
-        sd = sd - dt.timedelta(K)
+        # use sd for calculating indicators
+        sd = adjust_for_nan(sd, window)
 
         # example usage of the old backward compatible util function
         syms=[symbol]
         dates = pd.date_range(sd, ed)
         prices_all = ut.get_data(syms, dates)  # automatically adds SPY
         prices = prices_all[syms]  # only portfolio symbols
-        prices_SPY = prices_all['SPY']  # only SPY, for comparison later
         if self.verbose: print(prices)
 
-        prices_normalized, rolling_mean, upper_band, lower_band, rolling_std, k = \
-            get_all_indicators(sd, ed, syms, window, False)
+        normalized_prices, rolling_mean, upper_band, lower_band, rolling_std, k = \
+            get_all_factors(sd, ed, syms, window, False)
+        normalized_prices = normalized_prices.loc[anchor_sd:]
+        all_indicators = combine_indicators(rolling_mean, upper_band, lower_band, k, anchor_sd)
 
-        indicators = pd.concat([rolling_mean, upper_band, lower_band, k], axis=1)
-        indicators = indicators.loc[sd_original:]
-        indicators.columns = ['rolling_mean', 'upper_band', 'lower_band', 'k']
-        prices_normalized = prices_normalized.loc[sd_original:]
 
-        daily_price_change = get_daily_returns(prices_normalized)
+        d_indicators = discretize(all_indicators)
+        state_zero = d_indicators.iloc[0]['states']
+        self.ql.querysetstate((int(float(state_zero))))
 
-        indicators = discretize(indicators)
-
-        initial_state = indicators.iloc[0]['state']
-
-        self.ql.querysetstate((int(float(initial_state))))
-
-        orders = pd.DataFrame(0, index = prices_normalized.index, columns = ['Shares'])
-        buy_sell = pd.DataFrame('BUY', index=prices_normalized.index, columns=['Order'])
-        symbol_df = pd.DataFrame(symbol, index=prices_normalized.index, columns=['Symbol'])
-
-        df_trades = pd.concat([symbol_df, buy_sell, orders], axis=1)
-        df_trades.columns = ['Symbol', 'Order', 'Shares']
-
-        df_trades_copy = df_trades.copy()
-
-        i = 0
-
-        while i < 250:
-            i +=1
-            reward = 0
-            total_holdings = 0
-            print("this is " + str(i) + " time")
-            df_trades_copy = df_trades.copy()
-
-            for index, row in prices_normalized.iterrows():
-                reward = total_holdings * daily_price_change.loc[index] * (1 - self.impact)
-                a = self.ql.query(int(float(indicators.loc[index]['state'])), reward)
-                if(a ==1) and (total_holdings < 1000):
-                    buy_sell.loc[index]['Order'] = 'BUY'
-                    if total_holdings ==0:
-                        orders.loc[index]['Shares'] = 1000
-                        total_holdings += 1000
+        reward_multiplier = calculate_reward(normalized_prices)
+        symbol_df, order_num_df, trades_df = prepare_dataframes(normalized_prices, symbol)
+        count = 0
+        while count < 15:
+            count +=1
+            net_holdings = 0
+            print("this is " + str(count) + " time")
+            for datetime, norm_price in normalized_prices.iterrows():
+                reward = net_holdings * reward_multiplier.loc[datetime] * (1 - self.impact)
+                a = self.ql.query(int(float(d_indicators.loc[datetime]['states'])), reward)
+                #num_action set to 3. pick between 1 and 2.
+                if(a ==1) and (net_holdings < 1000):
+                    trades_df.loc[datetime]['Order'] = 'BUY'
+                    if net_holdings ==0:
+                        order_num_df.loc[datetime]['Shares'] = 1000
+                        net_holdings += 1000
                     else:
-                        orders.loc[index]['Shares'] = 2000
-                        total_holdings += 2000
-                elif (a ==2) and (total_holdings > -1000):
-                    buy_sell.loc[index]['Order'] = 'SELL'
-                    if total_holdings == 0:
-                        orders.loc[index]['Shares'] = -1000
-                        total_holdings = total_holdings -1000
+                        order_num_df.loc[datetime]['Shares'] = 2000
+                        net_holdings += 2000
+                elif (a ==2) and (net_holdings > -1000):
+                    trades_df.loc[datetime]['Order'] = 'SELL'
+                    if net_holdings == 0:
+                        order_num_df.loc[datetime]['Shares'] = -1000
+                        net_holdings = net_holdings -1000
                     else:
-                        orders.loc[index]['Shares'] = -2000
-                        total_holdings = total_holdings - 2000
+                        order_num_df.loc[datetime]['Shares'] = -2000
+                        net_holdings = net_holdings - 2000
 
-            df_trades = pd.concat([symbol_df, buy_sell, orders], axis=1)
+            df_trades = pd.concat([symbol_df, trades_df, order_num_df], axis=1)
             df_trades.columns = ['Symbol', 'Order', 'Shares']
-
-        print(df_trades)
-
 
     # this method should use the existing policy and test it against new data
     def testPolicy(self, symbol = "IBM", \
         sd=dt.datetime(2009,1,1), \
         ed=dt.datetime(2010,1,1), \
         sv = 10000):
-
-        N = 30
-        K = N+30
-        sd_original = sd
+        anchor_sd = sd
         window = 20
 
-        sd = sd - dt.timedelta(K)
+        sd = adjust_for_nan(sd, window)
 
         syms=[symbol]
         dates = pd.date_range(sd, ed)
         prices_all = ut.get_data(syms, dates)  # automatically adds SPY
         prices = prices_all[syms]  # only portfolio symbols
-        prices_SPY = prices_all['SPY']  # only SPY, for comparison later
         if self.verbose: print(prices)
 
-        prices_normalized, rolling_mean, upper_band, lower_band, rolling_std, k = \
-            get_all_indicators(sd, ed, syms, window, False)
+        normalized_prices, rolling_mean, upper_band, lower_band, rolling_std, k = \
+            get_all_factors(sd, ed, syms, window, False)
+        normalized_prices = normalized_prices.loc[anchor_sd:]
+        all_indicators = combine_indicators(rolling_mean, upper_band, lower_band, k, anchor_sd)
 
-        indicators = pd.concat([rolling_mean, upper_band, lower_band, k], axis=1)
-        indicators = indicators.loc[sd_original:]
-        indicators.columns = ['rolling_mean', 'upper_band', 'lower_band', 'k']
-        prices_normalized = prices_normalized.loc[sd_original:]
+        d_indicators = discretize(all_indicators)
 
-        daily_price_change = get_daily_returns(prices_normalized)
+        state_zero = d_indicators.iloc[0]['states']
 
-        indicators = discretize(indicators)
+        self.ql.querysetstate((int(float(state_zero))))
 
-        initial_state = indicators.iloc[0]['state']
-
-        self.ql.querysetstate((int(float(initial_state))))
-
-        orders = pd.DataFrame(0, index = prices_normalized.index, columns = ['Shares'])
-        buy_sell = pd.DataFrame('BUY', index=prices_normalized.index, columns=['Order'])
-        symbol_df = pd.DataFrame(symbol, index=prices_normalized.index, columns=['Symbol'])
-
-        reward = 0
-        total_holdings = 0
-        for index, row in prices_normalized.iterrows():
-            reward = total_holdings * daily_price_change.loc[index]
-
-            a = self.ql.querysetstate(int(float(indicators.loc[index]['state'])))
-            if (a == 1) and (total_holdings < 1000):
-                buy_sell.loc[index]['Order'] = 'BUY'
-                if total_holdings == 0:
-                    orders.loc[index]['Shares'] = 1000
-                    total_holdings += 1000
+        symbol_df, order_num_df, trades_df = prepare_dataframes(normalized_prices, symbol)
+        net_holdings = 0
+        for datetime, norm_price in normalized_prices.iterrows():
+            a = self.ql.querysetstate(int(float(d_indicators.loc[datetime]['states'])))
+            #a can be 0, 1, or 2. If 1, BUY. If 2, SELL.
+            if (a == 1) and (net_holdings < 1000):
+                trades_df.loc[datetime]['Order'] = 'BUY'
+                if net_holdings == 0:
+                    order_num_df.loc[datetime]['Shares'] = 1000
+                    net_holdings += 1000
                 else:
-                    orders.loc[index]['Shares'] = 2000
-                    total_holdings += 2000
-            elif (a == 2) and (total_holdings > -1000):
-                buy_sell.loc[index]['Order'] = 'SELL'
-                if total_holdings == 0:
-                    orders.loc[index]['Shares'] = -1000
-                    total_holdings = total_holdings - 1000
+                    order_num_df.loc[datetime]['Shares'] = 2000
+                    net_holdings += 2000
+            elif (a == 2) and (net_holdings > -1000):
+                trades_df.loc[datetime]['Order'] = 'SELL'
+                if net_holdings == 0:
+                    order_num_df.loc[datetime]['Shares'] = -1000
+                    net_holdings = net_holdings - 1000
                 else:
-                    orders.loc[index]['Shares'] = -2000
-                    total_holdings = total_holdings - 2000
+                    order_num_df.loc[datetime]['Shares'] = -2000
+                    net_holdings = net_holdings - 2000
 
-        df_trades = pd.concat([symbol_df, buy_sell, orders], axis=1)
+        df_trades = pd.concat([symbol_df, trades_df, order_num_df], axis=1)
         df_trades.columns = ['Symbol', 'Order', 'Shares']
-
-        df_trades = df_trades.drop('Symbol', axis=1)
-        df_trades = df_trades.drop('Order', axis=1)
 
         return df_trades
 
