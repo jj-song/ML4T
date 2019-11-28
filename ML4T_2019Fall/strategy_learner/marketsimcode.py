@@ -61,13 +61,29 @@ def discretize(all_indicators):
 
     bin_num = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-    bins_rm = [0, .2, .4, .6, .8, 1, 1.2, 1.4, 1.6, 1.8, 2]
+    rm_min = all_indicators['rolling_mean'].min()
+    rm_max = all_indicators['rolling_mean'].max()
+    rm_inc = (rm_max - rm_min) / 10
+    bins_rm = [rm_min - rm_min / 10, rm_min + rm_inc, rm_min + rm_inc * 2, rm_min + rm_inc * 3, rm_min + rm_inc * 4,
+               rm_min + rm_inc * 5, rm_min + rm_inc * 6, rm_min + rm_inc * 7, rm_min + rm_inc * 8, rm_min + rm_inc * 9,
+               rm_max + rm_max / 10]
     all_indicators['rm'] = pd.cut(all_indicators['rolling_mean'], bins_rm, labels=bin_num)
 
-    bins_ub = [0, .2, .4, .6, .8, 1, 1.2, 1.4, 1.6, 1.8, 2]
+
+    ub_min = all_indicators['upper_band'].min()
+    ub_max = all_indicators['upper_band'].max()
+    ub_inc = (ub_max - ub_min) / 10
+    bins_ub = [ub_min - ub_min / 10, ub_min + ub_inc, ub_min + ub_inc * 2, ub_min + ub_inc * 3, ub_min + ub_inc * 4,
+               ub_min + ub_inc * 5, ub_min + ub_inc * 6, ub_min + ub_inc * 7, ub_min + ub_inc * 8, ub_min + ub_inc * 9,
+               ub_max + ub_max / 10]
     all_indicators['ub'] = pd.cut(all_indicators['upper_band'], bins_ub, labels=bin_num)
 
-    bins_lb = [0, .2, .4, .6, .8, 1, 1.2, 1.4, 1.6, 1.8, 2]
+    lb_min = all_indicators['lower_band'].min()
+    lb_max = all_indicators['lower_band'].max()
+    lb_inc = (lb_max - lb_min) / 10
+    bins_lb = [lb_min - lb_min / 10, lb_min + lb_inc, lb_min + lb_inc * 2, lb_min + lb_inc * 3, lb_min + lb_inc * 4,
+               lb_min + lb_inc * 5, lb_min + lb_inc * 6, lb_min + lb_inc * 7, lb_min + lb_inc * 8, lb_min + lb_inc * 9,
+               lb_max + lb_max / 10]
     all_indicators['lb'] = pd.cut(all_indicators['lower_band'], bins_lb, labels=bin_num)
 
     bins_k = [-0.01, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100.1]
@@ -82,9 +98,9 @@ def discretize(all_indicators):
     return all_indicators
 
 def calculate_reward(normalized_prices):
-    daily = normalized_prices
-    daily[1:] = (normalized_prices[1:] / normalized_prices[:-1].values) - 1
-    return daily
+    reward = normalized_prices
+    reward[1:] = (normalized_prices[1:] / normalized_prices[:-1].values) - 1
+    return reward
 
 def prepare_dataframes(normalized_prices, symbol):
     symbol_df = pd.DataFrame(symbol, index=normalized_prices.index, columns=['Symbol'])
@@ -149,6 +165,15 @@ def df_trades_transform(df_trades, symbol):
 
     df_result = df_symbol.join(df_order).join(df_share)
     return df_result
+
+def translate_action(result):
+    if result == 1:
+        return 'BUY'
+    elif result == 2:
+        return 'SELL'
+
+def normalize(portval):
+    return portval / portval.ix[0,:]
 
 def compute_portvals(orders, start_val = 1000000, commission=9.95, impact=0.005):
     # this is the function the autograder will call to test your code

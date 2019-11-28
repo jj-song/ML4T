@@ -33,7 +33,7 @@ import random
 import numpy as np
 import QLearner as ql
 from indicators import get_all_factors, adjust_for_nan
-from marketsimcode import calculate_reward, discretize, combine_indicators, prepare_dataframes
+from marketsimcode import calculate_reward, translate_action, discretize, combine_indicators, prepare_dataframes
 
 class StrategyLearner(object):
 
@@ -47,7 +47,7 @@ class StrategyLearner(object):
     # this method should create a QLearner, and train it for trading
     def addEvidence(self, symbol = "IBM", \
         sd=dt.datetime(2008,1,1), \
-        ed=dt.datetime(2009,1,1), \
+        ed=dt.datetime(2009,12,31), \
         sv = 10000):
         anchor_sd = sd
         window = 20
@@ -68,46 +68,47 @@ class StrategyLearner(object):
         normalized_prices = normalized_prices.loc[anchor_sd:]
         all_indicators = combine_indicators(rolling_mean, upper_band, lower_band, k, anchor_sd)
 
-
         d_indicators = discretize(all_indicators)
-        state_zero = d_indicators.iloc[0]['states']
-        self.ql.querysetstate((int(float(state_zero))))
-
         reward_multiplier = calculate_reward(normalized_prices)
         symbol_df, order_num_df, trades_df = prepare_dataframes(normalized_prices, symbol)
         count = 0
-        while count < 15:
+        df = pd.concat([symbol_df, order_num_df, trades_df], axis=1)
+        df.columns = ['Symbol', 'Order', 'Shares']
+
+        while count < 200:
+            if count > 15 and df.equals(df_c):
+                break
+            df_c = df.copy()
             count +=1
             net_holdings = 0
-            print("this is " + str(count) + " time")
+            #print("this is " + str(count) + " time")
             for datetime, norm_price in normalized_prices.iterrows():
                 reward = net_holdings * reward_multiplier.loc[datetime] * (1 - self.impact)
-                a = self.ql.query(int(float(d_indicators.loc[datetime]['states'])), reward)
-                #num_action set to 3. pick between 1 and 2.
-                if(a ==1) and (net_holdings < 1000):
-                    trades_df.loc[datetime]['Order'] = 'BUY'
-                    if net_holdings ==0:
+                result = self.ql.query(int(float(d_indicators.loc[datetime]['states'])), reward)
+                action = translate_action(result)
+                if (action == 'BUY') and (net_holdings < 1000):
+                    trades_df.loc[datetime]['Order'] = action
+                    if net_holdings == 0:
                         order_num_df.loc[datetime]['Shares'] = 1000
                         net_holdings += 1000
-                    else:
+                    elif net_holdings == -1000:
                         order_num_df.loc[datetime]['Shares'] = 2000
                         net_holdings += 2000
-                elif (a ==2) and (net_holdings > -1000):
-                    trades_df.loc[datetime]['Order'] = 'SELL'
+                elif (action == 'SELL') and (net_holdings > -1000):
+                    trades_df.loc[datetime]['Order'] = action
                     if net_holdings == 0:
                         order_num_df.loc[datetime]['Shares'] = -1000
-                        net_holdings = net_holdings -1000
-                    else:
+                        net_holdings -= 1000
+                    elif net_holdings == 1000:
                         order_num_df.loc[datetime]['Shares'] = -2000
-                        net_holdings = net_holdings - 2000
-
-            df_trades = pd.concat([symbol_df, trades_df, order_num_df], axis=1)
-            df_trades.columns = ['Symbol', 'Order', 'Shares']
+                        net_holdings -= 2000
+                else:
+                    pass
 
     # this method should use the existing policy and test it against new data
     def testPolicy(self, symbol = "IBM", \
-        sd=dt.datetime(2009,1,1), \
-        ed=dt.datetime(2010,1,1), \
+        sd=dt.datetime(2010,1,1), \
+        ed=dt.datetime(2011,12,31), \
         sv = 10000):
         anchor_sd = sd
         window = 20
@@ -125,38 +126,37 @@ class StrategyLearner(object):
         normalized_prices = normalized_prices.loc[anchor_sd:]
         all_indicators = combine_indicators(rolling_mean, upper_band, lower_band, k, anchor_sd)
 
-        d_indicators = discretize(all_indicators)
 
-        state_zero = d_indicators.iloc[0]['states']
-
-        self.ql.querysetstate((int(float(state_zero))))
 
         symbol_df, order_num_df, trades_df = prepare_dataframes(normalized_prices, symbol)
         net_holdings = 0
+        d_indicators = discretize(all_indicators)
         for datetime, norm_price in normalized_prices.iterrows():
-            a = self.ql.querysetstate(int(float(d_indicators.loc[datetime]['states'])))
-            #a can be 0, 1, or 2. If 1, BUY. If 2, SELL.
-            if (a == 1) and (net_holdings < 1000):
-                trades_df.loc[datetime]['Order'] = 'BUY'
+            result = self.ql.querysetstate(int(float(d_indicators.loc[datetime]['states'])))
+            action = translate_action(result)
+            if (action == 'BUY') and (net_holdings < 1000):
+                trades_df.loc[datetime]['Order'] = action
                 if net_holdings == 0:
                     order_num_df.loc[datetime]['Shares'] = 1000
                     net_holdings += 1000
-                else:
+                elif net_holdings == -1000:
                     order_num_df.loc[datetime]['Shares'] = 2000
                     net_holdings += 2000
-            elif (a == 2) and (net_holdings > -1000):
-                trades_df.loc[datetime]['Order'] = 'SELL'
+            elif (action == 'SELL') and (net_holdings > -1000):
+                trades_df.loc[datetime]['Order'] = action
                 if net_holdings == 0:
                     order_num_df.loc[datetime]['Shares'] = -1000
-                    net_holdings = net_holdings - 1000
-                else:
+                    net_holdings -= 1000
+                elif net_holdings == 1000:
                     order_num_df.loc[datetime]['Shares'] = -2000
-                    net_holdings = net_holdings - 2000
+                    net_holdings -= 2000
+            else:
+                pass
 
-        df_trades = pd.concat([symbol_df, trades_df, order_num_df], axis=1)
-        df_trades.columns = ['Symbol', 'Order', 'Shares']
+        df = order_num_df
+        df.columns = ['Shares']
 
-        return df_trades
+        return df
 
         # # here we build a fake set of trades
         # # your code should return the same sort of data
@@ -175,6 +175,9 @@ class StrategyLearner(object):
         # if self.verbose: print(trades)
         # if self.verbose: print(prices_all)
         # return trades
+
+    def author(self):
+        return 'jsong350'
 
 if __name__=="__main__":  		   	  			  	 		  		  		    	 		 		   		 		  
     print("One does not simply think up a strategy")  		   	  			  	 		  		  		    	 		 		   		 		  
